@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyHub - Vui Học Mỗi Ngày</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Quicksand', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            blue: '#0EA5E9',   // Xanh da trời (Chủ đạo - Thủy)
+                            darkBlue: '#0284C7',
+                            yellow: '#FACC15', // Vàng (Sao/Điểm thưởng)
+                            orange: '#F97316', // Cam (Nút bấm nổi bật)
+                            bg: '#F0F9FF',     // Nền xanh siêu nhạt
+                        }
+                    },
+                    boxShadow: {
+                        'comic': '0 4px 0 0 rgba(0,0,0,0.1)', // Bóng kiểu hoạt hình
+                        'card': '0 10px 30px -5px rgba(14, 165, 233, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hover-bounce:hover { transform: translateY(-4px); transition: transform 0.2s; }
+        .btn-push { transition: all 0.1s; }
+        .btn-push:active { transform: translateY(2px); box-shadow: none !important; }
+    </style>
+</head>
+<body class="bg-brand-bg text-slate-700">
+
+    <nav class="bg-white sticky top-0 z-50 shadow-sm border-b border-sky-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-brand-blue rounded-xl flex items-center justify-center text-white shadow-comic shadow-sky-200">
+                        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+                    </div>
+                    <span class="text-2xl font-bold text-brand-darkBlue tracking-tight">StudyHub</span>
+                </div>
+
+                <div class="hidden md:flex gap-8 font-bold text-slate-500">
+                    <a href="#" class="text-brand-blue flex items-center gap-1 hover:bg-sky-50 px-3 py-1 rounded-lg transition"><i data-lucide="home" class="w-4 h-4"></i> Trang chủ</a>
+                    <a href="#" class="hover:text-brand-blue flex items-center gap-1 hover:bg-sky-50 px-3 py-1 rounded-lg transition"><i data-lucide="book-open" class="w-4 h-4"></i> Khóa học</a>
+                    <a href="#" class="hover:text-brand-blue flex items-center gap-1 hover:bg-sky-50 px-3 py-1 rounded-lg transition"><i data-lucide="trophy" class="w-4 h-4"></i> Thi đấu</a>
+                    <a href="#" class="hover:text-brand-blue flex items-center gap-1 hover:bg-sky-50 px-3 py-1 rounded-lg transition"><i data-lucide="gift" class="w-4 h-4"></i> Quà tặng</a>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200">
+                        <i data-lucide="star" class="w-4 h-4 text-brand-yellow fill-current"></i>
+                        <span class="font-bold text-yellow-700">1,250 XP</span>
+                    </div>
+                    <button class="w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden">
+                        <img src="https://api.dicebear.com/7.x/fun-emoji/svg?seed=Kid" class="w-full h-full bg-sky-100">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="bg-gradient-to-r from-sky-400 to-blue-500 rounded-3xl p-8 md:p-12 text-white shadow-xl shadow-sky-200 mb-12 relative overflow-hidden">
+            <div class="relative z-10 max-w-2xl">
+                <span class="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold border border-white/30 mb-4 inline-block">🚀 Học vui - Hiểu sâu - Nhớ lâu</span>
+                <h1 class="text-4xl md:text-5xl font-bold mb-4 leading-tight">Chào <span class="text-yellow-300">Bảo An</span>! <br>Hôm nay con muốn học gì?</h1>
+                <p class="text-sky-100 text-lg mb-8 font-medium">Khám phá kho tàng kiến thức Toán & Tiếng Anh chuẩn quốc tế ngay nào!</p>
+                <button class="bg-brand-orange hover:bg-orange-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-comic shadow-orange-700 btn-push flex items-center gap-2 text-lg">
+                    Vào học ngay <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="absolute right-10 bottom-0 w-64 h-64 hidden md:block">
+                <img src="https://cdn-icons-png.flaticon.com/512/4712/4712009.png" class="w-full h-full object-contain drop-shadow-lg animate-bounce duration-1000">
+            </div>
+            <div class="absolute -left-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+        </div>
+
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">Khóa Học Nổi Bật 🌟</h2>
+            <p class="text-slate-500 font-medium">Lựa chọn hàng đầu cho các bạn nhỏ tiểu học & THCS</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            
+            <div class="bg-white rounded-3xl p-4 shadow-card hover-bounce border-2 border-transparent hover:border-sky-200 transition group cursor-pointer">
+                <div class="relative h-44 rounded-2xl overflow-hidden mb-4 bg-sky-50">
+                    <img src="https://img.freepik.com/free-vector/calculator-concept-illustration_114360-1206.jpg" class="w-full h-full object-cover mix-blend-multiply">
+                    <span class="absolute top-3 left-3 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm">MATH</span>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800 mb-1 group-hover:text-brand-blue transition">Toán Tiếng Anh Lớp 3</h3>
+                <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold mb-4">
+                    <i data-lucide="book" class="w-4 h-4 text-sky-400"></i> 30 Bài giảng
+                    <span class="text-slate-300">|</span>
+                    <i data-lucide="list" class="w-4 h-4 text-sky-400"></i> 50 Đề thi
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span class="text-xl font-bold text-brand-blue">499.000đ</span>
+                    <button class="w-10 h-10 rounded-xl bg-sky-50 text-brand-blue flex items-center justify-center hover:bg-brand-blue hover:text-white transition shadow-sm">
+                        <i data-lucide="plus" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-4 shadow-card hover-bounce border-2 border-transparent hover:border-yellow-200 transition group cursor-pointer">
+                <div class="relative h-44 rounded-2xl overflow-hidden mb-4 bg-yellow-50">
+                    <img src="https://img.freepik.com/free-vector/trophy-award-laurel-wreath-composition-with-realistic-image-golden-cup-with-stepped-stand_1284-32301.jpg" class="w-full h-full object-cover mix-blend-multiply p-4">
+                    <span class="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm animate-pulse">HOT</span>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800 mb-1 group-hover:text-yellow-600 transition">Luyện thi TIMO Khối 3-4</h3>
+                <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold mb-4">
+                    <i data-lucide="medal" class="w-4 h-4 text-yellow-500"></i> Huy chương vàng
+                    <span class="text-slate-300">|</span>
+                    <i data-lucide="clock" class="w-4 h-4 text-yellow-500"></i> Cấp tốc
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span class="text-xl font-bold text-brand-orange">890.000đ</span>
+                    <button class="w-10 h-10 rounded-xl bg-orange-50 text-brand-orange flex items-center justify-center hover:bg-brand-orange hover:text-white transition shadow-sm">
+                        <i data-lucide="plus" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-4 shadow-card hover-bounce border-2 border-transparent hover:border-purple-200 transition group cursor-pointer">
+                <div class="relative h-44 rounded-2xl overflow-hidden mb-4 bg-purple-50">
+                    <img src="https://img.freepik.com/free-vector/online-world-concept-illustration_114360-1092.jpg" class="w-full h-full object-cover mix-blend-multiply">
+                    <span class="absolute top-3 left-3 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm">ENGLISH</span>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800 mb-1 group-hover:text-purple-600 transition">Tiếng Anh Giao Tiếp Kids</h3>
+                <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold mb-4">
+                    <i data-lucide="mic" class="w-4 h-4 text-purple-400"></i> Luyện nói AI
+                    <span class="text-slate-300">|</span>
+                    <i data-lucide="play-circle" class="w-4 h-4 text-purple-400"></i> Video
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span class="text-xl font-bold text-purple-600">350.000đ</span>
+                    <button class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition shadow-sm">
+                        <i data-lucide="plus" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
+             <div class="bg-white rounded-3xl p-4 shadow-card hover-bounce border-2 border-transparent hover:border-green-200 transition group cursor-pointer">
+                <div class="relative h-44 rounded-2xl overflow-hidden mb-4 bg-green-50">
+                    <img src="https://img.freepik.com/free-vector/science-lab-concept-illustration_114360-10904.jpg" class="w-full h-full object-cover mix-blend-multiply">
+                    <span class="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm">SCIENCE</span>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800 mb-1 group-hover:text-green-600 transition">Khám Phá Khoa Học 4</h3>
+                <div class="flex items-center gap-2 text-sm text-slate-500 font-semibold mb-4">
+                    <i data-lucide="flask-conical" class="w-4 h-4 text-green-400"></i> Thí nghiệm
+                    <span class="text-slate-300">|</span>
+                    <i data-lucide="video" class="w-4 h-4 text-green-400"></i> 3D
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span class="text-xl font-bold text-green-600">Miễn phí</span>
+                    <button class="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-600 hover:text-white transition shadow-sm">
+                        <i data-lucide="arrow-right" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>
