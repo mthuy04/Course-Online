@@ -250,7 +250,43 @@ function App() {
           {role === 'teacher' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Giảng dạy</div><SidebarItem id="home" icon={LayoutDashboard} label="Tổng quan" active={page === 'home'} onClick={setPage} /><SidebarItem id="schedule" icon={Calendar} label="Lịch dạy" active={page === 'schedule'} onClick={setPage} /><SidebarItem id="qa" icon={MessageCircle} label="Hỏi đáp" active={page === 'qa'} onClick={setPage} /></>}
           {role === 'admin' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Quản trị</div><SidebarItem id="home" icon={BarChart3} label="Dashboard" active={page === 'home'} onClick={setPage} /><SidebarItem id="finance" icon={DollarSign} label="Tài chính" active={page === 'finance'} onClick={setPage} /><SidebarItem id="users" icon={Users} label="Người dùng" active={page === 'users'} onClick={setPage} /><SidebarItem id="marketing" icon={Megaphone} label="Marketing" active={page === 'marketing'} onClick={setPage} /><SidebarItem id="settings" icon={Settings} label="Cấu hình" active={page === 'settings'} onClick={setPage} /></>}
         </nav>
-        <div className="mt-auto pt-6 border-t border-slate-100"><div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4"><img src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" /><div className="flex-1"><p className="text-sm font-bold capitalize">{currentUser?.full_name || role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div><button onClick={() => setCurrentUser(null)}><Bell size={16} /></button></div><div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">{['student', 'teacher', 'admin'].map(r => (<button key={r} onClick={() => { setRole(r); setPage('home'); }} className={`text-[10px] font-bold uppercase py-1.5 rounded ${role === r ? 'bg-white shadow text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}>{r.substr(0, 3)}</button>))}</div></div>
+        <div className="mt-auto pt-6 border-t border-slate-100"><div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4"><img src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" /><div className="flex-1"><p className="text-sm font-bold capitalize">{currentUser?.full_name || role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div><button onClick={() => setCurrentUser(null)}><Bell size={16} /></button></div><div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">
+          {/* Nút STU: Bấm phát thành Học sinh (ID=1) */}
+          <button 
+            onClick={() => { 
+              setRole('student'); 
+              setPage('home');
+              setCurrentUser({ id: 1, full_name: 'Bạn Học Sinh', role: 'student', email: 'student@studyhub.vn' }); 
+            }} 
+            className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'student' ? 'bg-white shadow text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            STU
+          </button>
+
+          {/* Nút TEA: Bấm phát thành Cô Giáo Mai (ID=2) */}
+          <button 
+            onClick={() => { 
+              setRole('teacher'); 
+              setPage('home');
+              setCurrentUser({ id: 2, full_name: 'Cô Giáo Mai', role: 'teacher', email: 'mai.gv@studyhub.vn' }); 
+            }} 
+            className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'teacher' ? 'bg-white shadow text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            TEA
+          </button>
+
+          {/* Nút ADM: Bấm phát thành Admin (ID=3) */}
+          <button 
+            onClick={() => { 
+              setRole('admin'); 
+              setPage('home');
+              setCurrentUser({ id: 3, full_name: 'Admin Hệ Thống', role: 'admin', email: 'admin@studyhub.vn' }); 
+            }} 
+            className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'admin' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            ADM
+          </button>
+        </div></div>
       </aside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50/50">
