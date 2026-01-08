@@ -6,7 +6,7 @@ import {
   MessageSquare, Award, Download, Heart, Share2, Eye, 
   TrendingUp, Zap, ShieldCheck, Gift, Target, BrainCircuit, DollarSign, ShoppingBag
 } from 'lucide-react';
-import { formatMoney } from '../utils/helpers';
+import { formatMoney, API_URL } from '../utils/helpers';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // --- COMPONENTS CON (Định nghĩa ngay trong file theo ý bạn) ---
