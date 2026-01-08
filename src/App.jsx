@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, BookOpen, ShoppingBag, Users, BarChart3, Bell, Search, PlayCircle,
   Sparkles, MessageCircle, Calendar, FileText, Settings, DollarSign, Megaphone,
-  Star, CheckCircle2, Clock, ChevronDown, ChevronUp, User, HelpCircle, Gift
+  Star, CheckCircle2, Clock, ChevronDown, ChevronUp, User, HelpCircle, Gift, LogOut
 } from 'lucide-react';
 import { API_URL, getEmbedLink, formatMoney } from './utils/helpers';
 import { SidebarItem, Modal } from './components/Common';
@@ -12,25 +12,26 @@ import AdminView from './pages/AdminView';
 import LandingPage from './pages/LandingPage';
 
 function App() {
-  // 1. QUẢN LÝ USER (AUTO LOGIN & F5 SAFE)
+  // 1. QUẢN LÝ USER (LOGIN / LOGOUT / F5 SAFE)
   const [currentUser, setCurrentUser] = useState(() => {
-    // Ưu tiên lấy từ LocalStorage để khi F5 không bị mất login
+    // Chỉ lấy từ LocalStorage nếu đã từng đăng nhập
     const savedUser = localStorage.getItem('current_user');
-    // Nếu chưa có, mặc định là Student (ID=1) để vào thẳng
-    return savedUser ? JSON.parse(savedUser) : { 
-      id: 1, full_name: 'Bạn Học Sinh', role: 'student', email: 'student@studyhub.vn' 
-    };
+    return savedUser ? JSON.parse(savedUser) : null; // <--- QUAN TRỌNG: Mặc định là null để hiện Landing Page
   });
 
   const [role, setRole] = useState(currentUser?.role || 'student');
   
-  // Khi currentUser thay đổi, lưu ngay vào LocalStorage và cập nhật Role
+  // Khi currentUser thay đổi (Login hoặc Logout)
   useEffect(() => {
-    localStorage.setItem('current_user', JSON.stringify(currentUser));
-    if (currentUser) setRole(currentUser.role);
+    if (currentUser) {
+      localStorage.setItem('current_user', JSON.stringify(currentUser));
+      setRole(currentUser.role);
+    } else {
+      localStorage.removeItem('current_user'); // Xóa khỏi bộ nhớ khi đăng xuất
+    }
   }, [currentUser]);
 
-  // Coi như đã login nếu có currentUser
+  // Biến kiểm tra trạng thái đăng nhập
   const isLoggedIn = !!currentUser;
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -38,7 +39,6 @@ function App() {
   const [page, setPage] = useState('home');
   const [courses, setCourses] = useState([]);
   
-  // Giỏ hàng (Cũng lưu vào LocalStorage để F5 không mất)
   const [cart, setCart] = useState(() => {
     const savedCart = localStorage.getItem('shopping_cart');
     return savedCart ? JSON.parse(savedCart) : [];
@@ -51,14 +51,14 @@ function App() {
   const [myCourses, setMyCourses] = useState([]);
   const [stats, setStats] = useState({ revenue: 0, users: 0, courses: 0, transactions: [] });
 
-  // STATE MODAL & DATA CHI TIẾT
+  // STATE MODAL & DATA
   const [activeModal, setActiveModal] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [lessonList, setLessonList] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
-  const [detailTab, setDetailTab] = useState('intro'); // intro | lessons | reviews
+  const [detailTab, setDetailTab] = useState('intro');
 
-  // FORM DATA (CHO TEACHER/ADMIN)
+  // FORM DATA
   const [formData, setFormData] = useState({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -83,9 +83,7 @@ function App() {
       .then(d => {
         const lessons = Array.isArray(d) ? d : (d.lessons || []);
         setLessonList(lessons);
-        if (lessons.length > 0) {
-          setCurrentLesson(lessons[0]); // Tự động chọn bài đầu tiên
-        }
+        if (lessons.length > 0) setCurrentLesson(lessons[0]);
         if (cb) cb(lessons);
       })
       .catch(err => console.error("Lỗi tải bài học:", err));
@@ -119,6 +117,14 @@ function App() {
     }
   };
 
+  // Hàm đăng xuất
+  const handleLogout = () => {
+    if(confirm("Bạn có chắc muốn đăng xuất?")) {
+        setCurrentUser(null); // Set null để quay về Landing Page
+        setPage('home');
+    }
+  };
+
   const handleSaveCourse = () => {
       if (!formData.title) { alert("Vui lòng nhập tên khóa học!"); return; }
       setIsLoading(true);
@@ -144,8 +150,6 @@ function App() {
           if (d.success) {
               const cid = formData.id || d.id; 
               if (!cid) { setIsLoading(false); return; }
-
-              // Lưu bài học
               fetch(`${API_URL}/save_lessons.php`, { 
                   method: 'POST', 
                   headers: { 'Content-Type': 'application/json' },
@@ -167,10 +171,8 @@ function App() {
   const handlePayment = () => {
     const userId = currentUser ? currentUser.id : 1;
     const total = cart.reduce((t, c) => t + parseInt(c.price), 0);
-    
     fetch(`${API_URL}/buy.php`, { 
-        method: 'POST', 
-        body: JSON.stringify({ user_id: userId, total: total }) 
+        method: 'POST', body: JSON.stringify({ user_id: userId, total: total }) 
     })
       .then(res => res.json())
       .then(data => {
@@ -187,9 +189,7 @@ function App() {
   const handleDeleteCourse = (course) => {
     if (!confirm(`Bạn có chắc muốn xóa khóa học: "${course.title}"?`)) return;
     fetch(`${API_URL}/delete.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: course.id })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: course.id })
     })
       .then(res => res.json())
       .then(data => {
@@ -201,10 +201,26 @@ function App() {
       });
   };
 
-  // --- GIAO DIỆN CHÍNH ---
+  // --- QUAN TRỌNG: CHẶN NẾU CHƯA LOGIN THÌ HIỆN LANDING PAGE ---
+  if (!isLoggedIn) {
+    return (
+      <>
+        {/* Truyền hàm mở Modal login xuống LandingPage */}
+        <LandingPage onLoginClick={() => setShowLoginModal(true)} />
+        
+        {/* Modal Đăng nhập */}
+        {showLoginModal && (
+          <Modal title="Đăng nhập hệ thống" onClose={() => setShowLoginModal(false)} maxWidth="max-w-md">
+            <LoginForm onSubmit={handleLogin} />
+          </Modal>
+        )}
+      </>
+    );
+  }
+
+  // --- GIAO DIỆN CHÍNH (KHI ĐÃ LOGIN) ---
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
-      {/* SIDEBAR */}
       <aside className="w-72 bg-white border-r border-slate-200 flex flex-col p-5 hidden md:flex z-30 shadow-sm">
         <div className="flex items-center gap-3 mb-10 px-2"><div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg ${role === 'admin' ? 'bg-slate-900' : role === 'teacher' ? 'bg-purple-600' : 'bg-indigo-600'}`}><BookOpen size={24} /></div><h1 className="text-2xl font-black text-slate-900">StudyHub.</h1></div>
         <nav className="flex-1 space-y-2 mt-6 overflow-y-auto custom-scrollbar">
@@ -213,37 +229,23 @@ function App() {
           {role === 'admin' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Quản trị</div><SidebarItem id="home" icon={BarChart3} label="Dashboard" active={page === 'home'} onClick={setPage} /><SidebarItem id="finance" icon={DollarSign} label="Tài chính" active={page === 'finance'} onClick={setPage} /><SidebarItem id="users" icon={Users} label="Người dùng" active={page === 'users'} onClick={setPage} /><SidebarItem id="marketing" icon={Megaphone} label="Marketing" active={page === 'marketing'} onClick={setPage} /><SidebarItem id="settings" icon={Settings} label="Cấu hình" active={page === 'settings'} onClick={setPage} /></>}
         </nav>
         
-        {/* FOOTER SIDEBAR (AVATAR & ROLE SWITCHER) */}
+        {/* FOOTER: AVATAR & NÚT ĐĂNG XUẤT */}
         <div className="mt-auto pt-6 border-t border-slate-100">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4 group relative">
                 <img src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" />
-                <div className="flex-1"><p className="text-sm font-bold capitalize">{currentUser?.full_name || role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div>
-                <button onClick={() => setCurrentUser(null)}><Bell size={16} /></button>
+                <div className="flex-1 overflow-hidden"><p className="text-sm font-bold capitalize truncate">{currentUser?.full_name}</p><p className="text-[10px] text-slate-500 uppercase font-bold">{role}</p></div>
+                
+                {/* NÚT ĐĂNG XUẤT (BACK VỀ LANDING PAGE) */}
+                <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Đăng xuất">
+                    <LogOut size={18} />
+                </button>
             </div>
             
-            {/* ROLE SWITCHER: CLICK LÀ ĐỔI NGAY KHÔNG CẦN PASS */}
-            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">
-                <button 
-                    onClick={() => { 
-                        const u = { id: 1, full_name: 'Bạn Học Sinh', role: 'student', email: 'student@studyhub.vn' };
-                        setCurrentUser(u); setRole('student'); setPage('home');
-                    }} 
-                    className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'student' ? 'bg-white shadow text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
-                >STU</button>
-                <button 
-                    onClick={() => { 
-                        const u = { id: 2, full_name: 'Cô Giáo Mai', role: 'teacher', email: 'mai.gv@studyhub.vn' };
-                        setCurrentUser(u); setRole('teacher'); setPage('home');
-                    }} 
-                    className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'teacher' ? 'bg-white shadow text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}
-                >TEA</button>
-                <button 
-                    onClick={() => { 
-                        const u = { id: 3, full_name: 'Admin Hệ Thống', role: 'admin', email: 'admin@studyhub.vn' };
-                        setCurrentUser(u); setRole('admin'); setPage('home');
-                    }} 
-                    className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'admin' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                >ADM</button>
+            {/* DEBUG: CHUYỂN ROLE NHANH (Chỉ hiện khi đã đăng nhập) */}
+            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg opacity-50 hover:opacity-100 transition-opacity">
+                <button onClick={() => { const u = { id: 1, full_name: 'Bạn Học Sinh', role: 'student', email: 'student@studyhub.vn' }; setCurrentUser(u); setRole('student'); setPage('home'); }} className={`text-[10px] font-bold uppercase py-1 rounded ${role === 'student' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>STU</button>
+                <button onClick={() => { const u = { id: 2, full_name: 'Cô Giáo Mai', role: 'teacher', email: 'mai.gv@studyhub.vn' }; setCurrentUser(u); setRole('teacher'); setPage('home'); }} className={`text-[10px] font-bold uppercase py-1 rounded ${role === 'teacher' ? 'bg-white shadow text-purple-600' : 'text-slate-400'}`}>TEA</button>
+                <button onClick={() => { const u = { id: 3, full_name: 'Admin Hệ Thống', role: 'admin', email: 'admin@studyhub.vn' }; setCurrentUser(u); setRole('admin'); setPage('home'); }} className={`text-[10px] font-bold uppercase py-1 rounded ${role === 'admin' ? 'bg-white shadow text-slate-900' : 'text-slate-400'}`}>ADM</button>
             </div>
         </div>
       </aside>
@@ -252,33 +254,9 @@ function App() {
         <header className="h-20 bg-white/80 backdrop-blur border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-20"><div className="flex items-center gap-3 bg-slate-100 px-4 py-2.5 rounded-full w-96"><Search size={18} className="text-slate-400" /><input placeholder="Tìm kiếm..." className="bg-transparent border-none outline-none text-sm w-full" /></div><div className="flex gap-4"><button className="relative p-2.5 bg-white border rounded-full text-slate-600 hover:bg-slate-50"><Bell size={20} /></button></div></header>
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-          {role === 'student' && <StudentView
-            currentUser={currentUser}
-            page={page}
-            setPage={setPage}
-            courses={courses}
-            cart={cart}
-            myCourses={myCourses}
-            handleAddToCart={(c) => setCart([...cart, c])}
-            removeFromCart={(i) => setCart(cart.filter((_, idx) => idx !== i))}
-            handlePayment={handlePayment}
-            onOpenDetail={handleOpenDetail}
-            onOpenPromo={() => setActiveModal('promo')}
-            onOpenLearning={(c) => { setSelectedCourse(c); fetchLessons(c.id); setActiveModal('learning'); }} />}
-          
-          {role === 'teacher' && <TeacherView 
-            currentUser={currentUser}
-            courses={courses} 
-            onOpenUpload={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }} 
-            onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }} 
-            page={page} 
-          />}
-          
-          {role === 'admin' && <AdminView 
-              courses={courses} stats={stats} onDeleteCourse={handleDeleteCourse} page={page} 
-              onAddNewCourse={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }}
-              onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }}
-          />}
+          {role === 'student' && <StudentView currentUser={currentUser} page={page} setPage={setPage} courses={courses} cart={cart} myCourses={myCourses} handleAddToCart={(c) => setCart([...cart, c])} removeFromCart={(i) => setCart(cart.filter((_, idx) => idx !== i))} handlePayment={handlePayment} onOpenDetail={handleOpenDetail} onOpenPromo={() => setActiveModal('promo')} onOpenLearning={(c) => { setSelectedCourse(c); fetchLessons(c.id); setActiveModal('learning'); }} />}
+          {role === 'teacher' && <TeacherView currentUser={currentUser} courses={courses} onOpenUpload={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }} onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }} page={page} />}
+          {role === 'admin' && <AdminView courses={courses} stats={stats} onDeleteCourse={handleDeleteCourse} page={page} onAddNewCourse={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }} onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }} />}
         </div>
       </main>
 
@@ -286,12 +264,9 @@ function App() {
       {activeModal === 'detail' && selectedCourse && (
         <Modal title="Chi tiết khóa học" onClose={() => setActiveModal(null)} maxWidth="max-w-5xl">
           <div className="flex flex-col lg:flex-row gap-8 h-full">
-            {/* CỘT TRÁI */}
             <div className="w-full lg:w-5/12 space-y-6">
               <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-100 relative group">
-                {(selectedCourse.id == 4 || selectedCourse.id === '4') && (
-                  <div className="absolute top-0 right-0 z-10"><div className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-bl-2xl shadow-xl flex items-center gap-2 uppercase tracking-wider"><span className="animate-pulse">🔥</span> BESTSELLER</div></div>
-                )}
+                {(selectedCourse.id == 4 || selectedCourse.id === '4') && (<div className="absolute top-0 right-0 z-10"><div className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-bl-2xl shadow-xl flex items-center gap-2 uppercase tracking-wider"><span className="animate-pulse">🔥</span> BESTSELLER</div></div>)}
                 {selectedCourse.video ? <iframe className="w-full h-full" src={getEmbedLink(selectedCourse.video)} frameBorder="0" allowFullScreen></iframe> : <img src={selectedCourse.image} className="w-full h-full object-cover" />}
               </div>
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
@@ -306,27 +281,13 @@ function App() {
                 </div>
               </div>
             </div>
-            {/* CỘT PHẢI */}
             <div className="flex-1 flex flex-col">
               <div className="flex border-b border-slate-200 mb-6">
-                {[{ id: 'intro', l: 'Giới thiệu' }, { id: 'lessons', l: `Nội dung (${lessonList.length})` }, { id: 'reviews', l: 'Đánh giá' }].map(t => (
-                  <button key={t.id} onClick={() => setDetailTab(t.id)} className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${detailTab === t.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.l}</button>
-                ))}
+                {[{ id: 'intro', l: 'Giới thiệu' }, { id: 'lessons', l: `Nội dung (${lessonList.length})` }, { id: 'reviews', l: 'Đánh giá' }].map(t => (<button key={t.id} onClick={() => setDetailTab(t.id)} className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${detailTab === t.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.l}</button>))}
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 h-[400px]">
-                {detailTab === 'intro' && (
-                  <div className="space-y-4 text-slate-600 leading-relaxed">
-                    <p className="font-medium text-lg text-slate-800">Bạn sẽ học được gì?</p>
-                    <ul className="grid grid-cols-1 gap-2 mb-4">{['Nắm vững kiến thức nền tảng.', 'Luyện tập với bộ đề thi thực chiến.', 'Giải đáp thắc mắc trực tiếp cùng giáo viên.', 'Chứng chỉ hoàn thành khóa học.'].map((item, i) => (<li key={i} className="flex gap-2 items-start"><CheckCircle2 size={18} className="text-green-500 mt-0.5 shrink-0" /> <span>{item}</span></li>))}</ul>
-                    <p className="font-medium text-lg text-slate-800 mt-6">Mô tả chi tiết</p><p>{selectedCourse.description || "Khóa học được thiết kế độc quyền bởi đội ngũ giáo viên giàu kinh nghiệm tại StudyHub."}</p>
-                  </div>
-                )}
-                {detailTab === 'lessons' && (
-                  <div className="space-y-3">
-                    {lessonList.length === 0 && <p className="text-slate-400 italic">Đang cập nhật nội dung...</p>}
-                    {lessonList.map((l, i) => (<div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all cursor-default"><div className="flex gap-3 items-center"><div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">{i + 1}</div><div><p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{l.title}</p><p className="text-xs text-slate-500">{l.type === 'quiz' ? 'Bài kiểm tra' : 'Video bài giảng'} • {l.duration}</p></div></div>{l.type === 'video' ? <PlayCircle size={18} className="text-slate-400" /> : <FileText size={18} className="text-slate-400" />}</div>))}
-                  </div>
-                )}
+                {detailTab === 'intro' && (<div className="space-y-4 text-slate-600 leading-relaxed"><p className="font-medium text-lg text-slate-800">Bạn sẽ học được gì?</p><ul className="grid grid-cols-1 gap-2 mb-4">{['Nắm vững kiến thức nền tảng.', 'Luyện tập với bộ đề thi thực chiến.', 'Giải đáp thắc mắc trực tiếp cùng giáo viên.', 'Chứng chỉ hoàn thành khóa học.'].map((item, i) => (<li key={i} className="flex gap-2 items-start"><CheckCircle2 size={18} className="text-green-500 mt-0.5 shrink-0" /> <span>{item}</span></li>))}</ul><p className="font-medium text-lg text-slate-800 mt-6">Mô tả chi tiết</p><p>{selectedCourse.description || "Khóa học được thiết kế độc quyền bởi đội ngũ giáo viên giàu kinh nghiệm tại StudyHub."}</p></div>)}
+                {detailTab === 'lessons' && (<div className="space-y-3">{lessonList.length === 0 && <p className="text-slate-400 italic">Đang cập nhật nội dung...</p>}{lessonList.map((l, i) => (<div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all cursor-default"><div className="flex gap-3 items-center"><div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">{i + 1}</div><div><p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{l.title}</p><p className="text-xs text-slate-500">{l.type === 'quiz' ? 'Bài kiểm tra' : 'Video bài giảng'} • {l.duration}</p></div></div>{l.type === 'video' ? <PlayCircle size={18} className="text-slate-400" /> : <FileText size={18} className="text-slate-400" />}</div>))}</div>)}
                 {detailTab === 'reviews' && (<div className="space-y-6"><div className="flex items-center gap-4 bg-yellow-50 p-6 rounded-2xl"><div className="text-center"><p className="text-4xl font-black text-yellow-500">4.9</p><div className="flex text-yellow-400 text-xs mt-1"><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /></div></div><div className="flex-1 space-y-1">{[5, 4, 3, 2, 1].map(star => (<div key={star} className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2">{star}</span><div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-yellow-400" style={{ width: star === 5 ? '80%' : star === 4 ? '15%' : '5%' }}></div></div></div>))}</div></div><div className="space-y-4">{[1, 2, 3].map(i => (<div key={i} className="border-b border-slate-100 pb-4"><div className="flex gap-3 items-center mb-2"><div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center font-bold text-xs text-slate-600"><User size={14} /></div><div><p className="font-bold text-sm text-slate-800">Học viên ẩn danh</p><div className="flex text-yellow-400 text-[10px]"><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /></div></div></div><p className="text-sm text-slate-600">Khóa học rất hay, thầy dạy dễ hiểu.</p></div>))}</div></div>)}
               </div>
             </div>
