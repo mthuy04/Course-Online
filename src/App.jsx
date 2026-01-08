@@ -13,12 +13,12 @@ import AdminView from './pages/AdminView';
 import LandingPage from './pages/LandingPage';
 
 // --- QUIZ COMPONENT GIẢ LẬP (MỚI) ---
+// --- QUIZ COMPONENT GIẢ LẬP (ĐÃ FIX LỖI TỐI MÀU) ---
 const QuizSimulator = ({ title, onFinish }) => {
   const [step, setStep] = useState('start'); // start | playing | result
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   
-  // Bộ câu hỏi mẫu (Dùng chung cho demo)
   const questions = [
     { q: "Câu 1: Đâu là một ngôn ngữ lập trình phổ biến?", a: ["HTML", "Python", "Photoshop", "Excel"], correct: 1 },
     { q: "Câu 2: HTML là viết tắt của từ gì?", a: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyperlink Text Mode", "Home Tool Markup"], correct: 0 },
@@ -59,21 +59,23 @@ const QuizSimulator = ({ title, onFinish }) => {
   );
 
   return (
-    <div className="bg-white w-full h-full overflow-y-auto"> 
-      <div className="max-w-2xl mx-auto p-8 h-full flex flex-col justify-center animate-fade-in">
-        <div className="flex justify-between items-center mb-6"></div>
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Câu hỏi {currentQ + 1}/{questions.length}</span>
-        <span className="text-xs font-bold text-indigo-600">Điểm: {score}</span>
-      </div>
-      <h3 className="text-xl font-bold text-slate-800 mb-8 leading-relaxed">{questions[currentQ].q}</h3>
-      <div className="grid grid-cols-1 gap-4">
-        {questions[currentQ].a.map((ans, i) => (
-          <button key={i} onClick={() => handleAnswer(i)} className="p-4 rounded-xl border-2 border-slate-100 text-left font-medium hover:border-indigo-500 hover:bg-indigo-50 transition-all flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold group-hover:bg-indigo-200 group-hover:text-indigo-700">{String.fromCharCode(65+i)}</div>
-            {ans}
-          </button>
-        ))}
-      </div>
+    // ĐÃ THÊM bg-white VÀO ĐÂY ĐỂ KHÔNG BỊ TỐI
+    <div className="w-full h-full bg-white overflow-y-auto custom-scrollbar">
+        <div className="max-w-2xl mx-auto p-8 min-h-full flex flex-col justify-center animate-fade-in">
+          <div className="flex justify-between items-center mb-6">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Câu hỏi {currentQ + 1}/{questions.length}</span>
+            <span className="text-xs font-bold text-indigo-600">Điểm: {score}</span>
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-8 leading-relaxed">{questions[currentQ].q}</h3>
+          <div className="grid grid-cols-1 gap-4">
+            {questions[currentQ].a.map((ans, i) => (
+              <button key={i} onClick={() => handleAnswer(i)} className="p-4 rounded-xl border-2 border-slate-100 text-left font-medium hover:border-indigo-500 hover:bg-indigo-50 transition-all flex items-center gap-3 group">
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold group-hover:bg-indigo-200 group-hover:text-indigo-700">{String.fromCharCode(65+i)}</div>
+                {ans}
+              </button>
+            ))}
+          </div>
+        </div>
     </div>
   );
 };
