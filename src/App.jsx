@@ -12,7 +12,12 @@ import AdminView from './pages/AdminView';
 import LandingPage from './pages/LandingPage';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // Lưu thông tin user thật
+  const [showLoginModal, setShowLoginModal] = useState(false); // Quản lý bật/tắt Popup đăng nhập
+  
+  // Tự động coi là đã login nếu có currentUser
+  const isLoggedIn = !!currentUser;
+  
   const [role, setRole] = useState('student');
   const [page, setPage] = useState('home');
   const [courses, setCourses] = useState([]);
@@ -42,7 +47,7 @@ function App() {
         setStats(await resStats.json());
       }
     } catch (e) { console.error(e); }
-  }; // Đã sửa lỗi thừa dấu } tại đây
+  }; 
 
   useEffect(() => { if (isLoggedIn) fetchData(); }, [role, isLoggedIn]);
 
@@ -68,88 +73,122 @@ function App() {
     setActiveModal('detail');
   };
 
-const handleSaveCourse = () => {
-    // 1. Validate cơ bản trước khi gửi
-    if (!formData.title) {
-        alert("Vui lòng nhập tên khóa học!");
-        return;
-    }
-
-    setIsLoading(true);
-    const url = formData.id ? '/update.php' : '/add.php';
-    
-    // 2. Chuẩn bị dữ liệu gửi đi (Payload)
-    const payload = {
-        ...formData,
-        id: formData.id, // Đảm bảo gửi ID nếu là update
-        price: formData.price ? parseInt(formData.price) : 0, // Ép kiểu số cho an toàn
-        // Logic tên giảng viên:
-        teacher_name: role === 'admin' ? (formData.teacher_name || 'Admin Hệ Thống') : 'Giảng viên (Tôi)',
-        video: getEmbedLink(formData.video),
-        image: formData.image || 'https://img.freepik.com/free-vector/online-learning-isometric-concept_1284-17947.jpg'
-    };
-
-    console.log("Dữ liệu đang gửi đi:", payload); // [DEBUG] Xem log để check dữ liệu
-
-    fetch(`${API_URL}${url}`, { 
-        method: 'POST', 
+  const handleLogin = async (username, password) => {
+    try {
+      // Gọi API auth.php
+      const res = await fetch(`${API_URL}/auth.php`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload) 
-    })
-    .then(r => r.json())
-    .then(d => {
-        console.log("Backend trả về:", d); // [DEBUG] Xem backend trả về gì
+        body: JSON.stringify({ 
+          action: 'login', // Quan trọng: Phải khớp với auth.php
+          username: username, 
+          password: password 
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setCurrentUser(data.user); // Lưu user vào state (User này có id, role, full_name...)
+        setRole(data.user.role);   // Cập nhật luôn Role cho đúng
+        setShowLoginModal(false);  // Tắt popup
+      } else {
+        alert("❌ " + data.message); // Hiện lỗi (vd: Sai mật khẩu)
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi kết nối đến Server!");
+    }
+  };
 
-        if (d.success) {
-            // QUAN TRỌNG: Lấy ID khóa học vừa tạo (nếu là add) hoặc ID cũ (nếu là update)
-            const cid = formData.id || d.id; 
-
-            if (!cid) {
-                alert("Lỗi: Backend không trả về ID khóa học mới. Kiểm tra file add.php!");
-                setIsLoading(false);
-                return;
-            }
-
-            // Gửi mảng lessons để lưu vào database bài giảng
-            fetch(`${API_URL}/save_lessons.php`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ course_id: cid, lessons: formData.lessons }) 
-            })
-            .then(r => r.text()) // Dùng text() trước để tránh lỗi nếu backend trả về lỗi PHP (HTML)
-            .then(responseString => {
-                console.log("Save lessons response:", responseString); // [DEBUG]
-                
-                try {
-                   // Thử parse JSON, nếu backend in ra lỗi PHP thì sẽ bắt ở catch
-                   const result = JSON.parse(responseString); 
-                   // Hoặc nếu backend của bạn không trả về json ở save_lessons thì bỏ qua dòng này
-                } catch (e) {
-                   console.warn("Save lessons không trả về JSON chuẩn, nhưng vẫn tiếp tục.");
-                }
-
-                alert(formData.id ? "✅ Cập nhật thành công!" : "✅ Tạo khóa học mới thành công!");
-                setActiveModal(null);
-                fetchData(); // Load lại danh sách
-            })
-            .catch(err => console.error("Lỗi lưu bài học:", err));
-
-        } else {
-            alert("Lỗi từ server: " + (d.message || "Không xác định"));
-        }
-    })
-    .catch(err => {
-        console.error("Lỗi kết nối API:", err);
-        alert("Không thể kết nối đến Server. Vui lòng kiểm tra Console.");
-    })
-    .finally(() => {
-        setIsLoading(false);
-    });
-};
+  const handleSaveCourse = () => {
+      // 1. Validate cơ bản trước khi gửi
+      if (!formData.title) {
+          alert("Vui lòng nhập tên khóa học!");
+          return;
+      }
+  
+      setIsLoading(true);
+      const url = formData.id ? '/update.php' : '/add.php';
+      
+      // 2. Chuẩn bị dữ liệu gửi đi (Payload)
+      const payload = {
+          ...formData,
+          id: formData.id, // Đảm bảo gửi ID nếu là update
+          price: formData.price ? parseInt(formData.price) : 0, // Ép kiểu số cho an toàn
+          // Logic tên giảng viên:
+          teacher_name: role === 'admin' ? (formData.teacher_name || 'Admin Hệ Thống') : 'Giảng viên (Tôi)',
+          video: getEmbedLink(formData.video),
+          image: formData.image || 'https://img.freepik.com/free-vector/online-learning-isometric-concept_1284-17947.jpg'
+      };
+  
+      console.log("Dữ liệu đang gửi đi:", payload); // [DEBUG] Xem log để check dữ liệu
+  
+      fetch(`${API_URL}${url}`, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload) 
+      })
+      .then(r => r.json())
+      .then(d => {
+          console.log("Backend trả về:", d); // [DEBUG] Xem backend trả về gì
+  
+          if (d.success) {
+              // QUAN TRỌNG: Lấy ID khóa học vừa tạo (nếu là add) hoặc ID cũ (nếu là update)
+              const cid = formData.id || d.id; 
+  
+              if (!cid) {
+                  alert("Lỗi: Backend không trả về ID khóa học mới. Kiểm tra file add.php!");
+                  setIsLoading(false);
+                  return;
+              }
+  
+              // Gửi mảng lessons để lưu vào database bài giảng
+              fetch(`${API_URL}/save_lessons.php`, { 
+                  method: 'POST', 
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ course_id: cid, lessons: formData.lessons }) 
+              })
+              .then(r => r.text()) // Dùng text() trước để tránh lỗi nếu backend trả về lỗi PHP (HTML)
+              .then(responseString => {
+                  console.log("Save lessons response:", responseString); // [DEBUG]
+                  
+                  try {
+                     // Thử parse JSON, nếu backend in ra lỗi PHP thì sẽ bắt ở catch
+                     const result = JSON.parse(responseString); 
+                     // Hoặc nếu backend của bạn không trả về json ở save_lessons thì bỏ qua dòng này
+                  } catch (e) {
+                     console.warn("Save lessons không trả về JSON chuẩn, nhưng vẫn tiếp tục.");
+                  }
+  
+                  alert(formData.id ? "✅ Cập nhật thành công!" : "✅ Tạo khóa học mới thành công!");
+                  setActiveModal(null);
+                  fetchData(); // Load lại danh sách
+              })
+              .catch(err => console.error("Lỗi lưu bài học:", err));
+  
+          } else {
+              alert("Lỗi từ server: " + (d.message || "Không xác định"));
+          }
+      })
+      .catch(err => {
+          console.error("Lỗi kết nối API:", err);
+          alert("Không thể kết nối đến Server. Vui lòng kiểm tra Console.");
+      })
+      .finally(() => {
+          setIsLoading(false);
+      });
+  };
 
   const handlePayment = () => {
+    // Nếu chưa có user_id thật, dùng tạm ID của currentUser hoặc mặc định 1
+    const userId = currentUser ? currentUser.id : 1;
     const total = cart.reduce((t, c) => t + parseInt(c.price), 0);
-    fetch(`${API_URL}/buy.php`, { method: 'POST', body: JSON.stringify({ user_id: 1, total: total }) })
+    
+    fetch(`${API_URL}/buy.php`, { 
+        method: 'POST', 
+        body: JSON.stringify({ user_id: userId, total: total }) 
+    })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -185,8 +224,21 @@ const handleSaveCourse = () => {
       .catch(err => console.error("Lỗi xóa:", err));
   };
 
-  if (!isLoggedIn) return <LandingPage onLoginClick={() => setIsLoggedIn(true)} />;
+  // --- HIỂN THỊ LANDING PAGE & LOGIN MODAL NẾU CHƯA LOGIN ---
+  if (!isLoggedIn) {
+    return (
+      <>
+        <LandingPage onLoginClick={() => setShowLoginModal(true)} />
+        {showLoginModal && (
+          <Modal title="Đăng nhập hệ thống" onClose={() => setShowLoginModal(false)} maxWidth="max-w-md">
+            <LoginForm onSubmit={handleLogin} />
+          </Modal>
+        )}
+      </>
+    );
+  }
 
+  // --- GIAO DIỆN CHÍNH ---
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
       {/* SIDEBAR */}
@@ -197,7 +249,7 @@ const handleSaveCourse = () => {
           {role === 'teacher' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Giảng dạy</div><SidebarItem id="home" icon={LayoutDashboard} label="Tổng quan" active={page === 'home'} onClick={setPage} /><SidebarItem id="schedule" icon={Calendar} label="Lịch dạy" active={page === 'schedule'} onClick={setPage} /><SidebarItem id="qa" icon={MessageCircle} label="Hỏi đáp" active={page === 'qa'} onClick={setPage} /></>}
           {role === 'admin' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Quản trị</div><SidebarItem id="home" icon={BarChart3} label="Dashboard" active={page === 'home'} onClick={setPage} /><SidebarItem id="finance" icon={DollarSign} label="Tài chính" active={page === 'finance'} onClick={setPage} /><SidebarItem id="users" icon={Users} label="Người dùng" active={page === 'users'} onClick={setPage} /><SidebarItem id="marketing" icon={Megaphone} label="Marketing" active={page === 'marketing'} onClick={setPage} /><SidebarItem id="settings" icon={Settings} label="Cấu hình" active={page === 'settings'} onClick={setPage} /></>}
         </nav>
-        <div className="mt-auto pt-6 border-t border-slate-100"><div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4"><img src={`https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" /><div className="flex-1"><p className="text-sm font-bold capitalize">{role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div><button onClick={() => setIsLoggedIn(false)}><Bell size={16} /></button></div><div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">{['student', 'teacher', 'admin'].map(r => (<button key={r} onClick={() => { setRole(r); setPage('home'); }} className={`text-[10px] font-bold uppercase py-1.5 rounded ${role === r ? 'bg-white shadow text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}>{r.substr(0, 3)}</button>))}</div></div>
+        <div className="mt-auto pt-6 border-t border-slate-100"><div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4"><img src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" /><div className="flex-1"><p className="text-sm font-bold capitalize">{currentUser?.full_name || role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div><button onClick={() => setCurrentUser(null)}><Bell size={16} /></button></div><div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">{['student', 'teacher', 'admin'].map(r => (<button key={r} onClick={() => { setRole(r); setPage('home'); }} className={`text-[10px] font-bold uppercase py-1.5 rounded ${role === r ? 'bg-white shadow text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}>{r.substr(0, 3)}</button>))}</div></div>
       </aside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50/50">
@@ -205,6 +257,7 @@ const handleSaveCourse = () => {
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {role === 'student' && <StudentView
+            currentUser={currentUser} // Truyền user thật xuống
             page={page}
             setPage={setPage}
             courses={courses}
@@ -220,7 +273,13 @@ const handleSaveCourse = () => {
               fetchLessons(c.id);
               setActiveModal('learning');
             }} />}
-          {role === 'teacher' && <TeacherView courses={courses} onOpenUpload={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }} onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }} page={page} />}
+          {role === 'teacher' && <TeacherView 
+            currentUser={currentUser} // Truyền user thật xuống
+            courses={courses} 
+            onOpenUpload={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }} 
+            onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }} 
+            page={page} 
+          />}
           {/* App.jsx */}
           {role === 'admin' && (
             <AdminView 
@@ -593,5 +652,44 @@ const handleSaveCourse = () => {
     </div>
   );
 }
+
+// --- COMPONENT FORM ĐĂNG NHẬP ---
+const LoginForm = ({ onSubmit }) => {
+  const [u, setU] = useState('');
+  const [p, setP] = useState('');
+
+  return (
+    <div className="space-y-4 p-4">
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">Tài khoản</label>
+        <input 
+          value={u} onChange={e => setU(e.target.value)}
+          className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Ví dụ: student"
+          autoFocus
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">Mật khẩu</label>
+        <input 
+          type="password"
+          value={p} onChange={e => setP(e.target.value)}
+          className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Ví dụ: 123"
+          onKeyDown={(e) => e.key === 'Enter' && onSubmit(u, p)}
+        />
+      </div>
+      <button 
+        onClick={() => onSubmit(u, p)}
+        className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black shadow-lg hover:bg-indigo-700 transition-all"
+      >
+        ĐĂNG NHẬP NGAY
+      </button>
+      <p className="text-center text-xs text-slate-400">
+        Gợi ý: student / 123
+      </p>
+    </div>
+  );
+};
 
 export default App;
