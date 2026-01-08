@@ -1,20 +1,12 @@
 <?php
-// --- BẮT BUỘC: CHO PHÉP REACT VƯỢT QUA CỬA NGROK ---
-header("Access-Control-Allow-Origin: *");
-// Dòng dưới là chìa khóa quan trọng nhất:
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, ngrok-skip-browser-warning");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-
-// Xử lý request kiểm tra của trình duyệt
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-header("Content-Type: application/json; charset=UTF-8");
-
+// 1. Gọi file db.php ngay dòng đầu tiên
+// File db.php sẽ tự động lo phần "Mở cửa" (CORS) và kết nối Database
 require 'db.php'; 
 
+// 2. Báo cho trình duyệt biết đây là dữ liệu JSON
+header("Content-Type: application/json; charset=UTF-8");
+
+// 3. Lấy dữ liệu khóa học
 $sql = "SELECT * FROM courses";
 $result = $conn->query($sql);
 
@@ -25,6 +17,6 @@ if ($result && $result->num_rows > 0) {
     }
 }
 
+// 4. Trả về kết quả
 echo json_encode($courses);
-$conn->close();
 ?>
