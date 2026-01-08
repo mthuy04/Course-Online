@@ -1,4 +1,3 @@
-// Thêm chữ useEffect vào trong ngoặc nhọn
 import { useState, useEffect } from 'react';
 import { 
   Plus, Users, PlayCircle, BookOpen, Trash2, ChevronRight, 
@@ -9,15 +8,13 @@ import {
 import { formatMoney, API_URL } from '../utils/helpers';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// --- COMPONENTS CON (Định nghĩa ngay trong file theo ý bạn) ---
-// --- SỬA COMPONENT NÀY Ở ĐẦU FILE (KHOẢNG DÒNG 13) ---
+// --- COMPONENTS CON ---
 const CourseCard3D = ({ course, onAction, onDetail }) => (
   <div onClick={() => onDetail(course)} className="group relative bg-white rounded-[24px] border border-slate-100 overflow-hidden hover:shadow-[0_20px_50px_-12px_rgba(79,70,229,0.2)] transition-all duration-500 hover:-translate-y-2 cursor-pointer h-full flex flex-col">
     <div className="relative h-48 overflow-hidden flex-shrink-0">
       <img src={course.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={course.title} />
       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-60"></div>
       
-      {/* Badge Cấp độ (Giữ nguyên) */}
       <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-slate-900 shadow-lg">
         {course.level === 'cap1' ? 'Tiểu học' : course.level === 'cap2' ? 'THCS' : 'THPT'}
       </span>
@@ -52,7 +49,6 @@ const CourseCard3D = ({ course, onAction, onDetail }) => (
 const HomeDashboard = ({ onAction }) => {
   const [leaders, setLeaders] = useState([]);
 
-  // Gọi API lấy bảng xếp hạng thật
   useEffect(() => {
     fetch(`${API_URL}/get_leaderboard.php`)
       .then(res => res.json())
@@ -64,8 +60,6 @@ const HomeDashboard = ({ onAction }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-
-      {/* --- BANNER MARKETING (GIỮ NGUYÊN) --- */}
       <div className="lg:col-span-2 bg-gradient-to-r from-rose-500 to-orange-500 p-8 rounded-[32px] text-white shadow-xl shadow-rose-200/50 relative overflow-hidden flex items-center">
         <div className="absolute -right-20 -top-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute -left-20 -bottom-20 w-60 h-60 bg-yellow-300/20 rounded-full blur-3xl"></div>
@@ -78,32 +72,25 @@ const HomeDashboard = ({ onAction }) => {
         <div className="hidden lg:block relative z-10 rotate-[-15deg] translate-y-6 translate-x-6"><Target size={140} className="text-white/80" strokeWidth={1.5} /></div>
       </div>
 
-      {/* --- BẢNG VÀNG THÀNH TÍCH (ĐÃ CONNECT DB THẬT) --- */}
       <div className="bg-gradient-to-b from-indigo-600 to-violet-700 p-6 rounded-[32px] text-white shadow-lg shadow-indigo-200 flex flex-col h-full">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
             <Trophy size={20} className="text-yellow-300"/> Bảng vàng thành tích
         </h3>
-        
         <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
           {leaders.length > 0 ? leaders.map((u, i) => (
             <div key={i} className={`flex items-center justify-between p-3 rounded-2xl transition-all hover:bg-white/10 ${u.rank === 1 ? 'bg-yellow-500/20 border border-yellow-400/50' : 'bg-white/5 border border-white/10'}`}>
               <div className="flex items-center gap-3">
-                {/* Huy hiệu Rank */}
                 <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shadow-md 
                     ${u.rank === 1 ? 'bg-yellow-400 text-yellow-900' : 
                       u.rank === 2 ? 'bg-slate-300 text-slate-800' : 
                       u.rank === 3 ? 'bg-orange-400 text-orange-900' : 'bg-slate-700 text-slate-400'}`}>
                     {u.rank}
                 </div>
-                
-                {/* Avatar & Tên */}
                 <div className="flex flex-col">
                     <span className="font-bold text-sm truncate max-w-[120px]">{u.full_name}</span>
                     {u.rank === 1 && <span className="text-[10px] text-yellow-300 font-bold">👑 Top 1 Server</span>}
                 </div>
               </div>
-              
-              {/* Điểm XP */}
               <span className="text-xs font-black text-white bg-white/20 px-2 py-1 rounded-lg">
                 {u.xp} XP
               </span>
@@ -118,10 +105,31 @@ const HomeDashboard = ({ onAction }) => {
 };
 
 // --- MAIN VIEW ---
-const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart, handlePayment, removeFromCart, onOpenDetail, onOpenLearning, onOpenPromo }) => {
+// QUAN TRỌNG: Nhận thêm prop currentUser
+const StudentView = ({ currentUser, page, setPage, courses, cart, myCourses, handleAddToCart, handlePayment, removeFromCart, onOpenDetail, onOpenLearning, onOpenPromo }) => {
   const [aiStep, setAiStep] = useState(0); 
   const [aiTarget, setAiTarget] = useState(''); 
   const [filter, setFilter] = useState('all');
+  
+  // STATE MỚI: Lưu tiến độ học tập thật
+  const [learningStats, setLearningStats] = useState({ hours: 0, score: 0, count: 0 });
+
+  // EFFECT MỚI: Tự động tải tiến độ khi vào trang "Góc học tập"
+  useEffect(() => {
+    if (page === 'my-learning' && currentUser) {
+        fetch(`${API_URL}/get_learning_stats.php?user_id=${currentUser.id}`)
+           .then(r => r.json())
+           .then(data => {
+               // Cập nhật state với dữ liệu thật từ DB
+               setLearningStats({
+                   hours: data.hours_learned || 0,
+                   score: data.avg_score || 0,
+                   count: data.completed_lessons || 0
+               });
+           })
+           .catch(e => console.error("Lỗi tải tiến độ:", e));
+    }
+  }, [page, currentUser]);
 
   const filteredCourses = filter === 'all' ? courses : courses.filter(c => c.level === filter);
 
@@ -139,7 +147,7 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
         </div>
       </div>
 
-      <HomeDashboard />
+      <HomeDashboard onAction={() => setPage('ai-planner')} />
 
       <div>
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -185,9 +193,9 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
     </div>
   );
 
-// 3. MY LEARNING
+  // 3. MY LEARNING - ĐÃ KẾT NỐI DB THẬT
   if (page === 'my-learning') {
-    // Dữ liệu giả lập cho biểu đồ
+    // Biểu đồ hoạt động (Vẫn giữ giả lập vì DB chưa có lịch sử từng ngày)
     const activityData = [
       {name:'T2', h:2}, {name:'T3', h:4}, {name:'T4', h:1}, 
       {name:'T5', h:5}, {name:'T6', h:8}, {name:'T7', h:6}, {name:'CN', h:3}
@@ -195,9 +203,9 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
 
     return (
       <div className="space-y-8 animate-fade-in-up pb-10">
-        <h2 className="text-3xl font-black text-slate-800">Góc học tập</h2>
+        <h2 className="text-3xl font-black text-slate-800">Góc học tập của {currentUser?.full_name}</h2>
         
-        {/* --- PHẦN 1: 4 SỐ LIỆU (HÀNG NGANG TRÊN CÙNG) --- */}
+        {/* --- PHẦN 1: SỐ LIỆU THẬT TỪ DATABASE --- */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-center hover:shadow-md transition-all">
                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Khóa đang học</p>
@@ -205,25 +213,27 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
             </div>
             <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-center hover:shadow-md transition-all">
                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Giờ đã học</p>
-                <h3 className="text-3xl font-black text-emerald-600">12.5h</h3>
+                {/* Dữ liệu thật từ DB */}
+                <h3 className="text-3xl font-black text-emerald-600">{learningStats.hours}h</h3>
             </div>
             <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-center hover:shadow-md transition-all">
                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Bài tập xong</p>
-                <h3 className="text-3xl font-black text-orange-500">24</h3>
+                 {/* Dữ liệu thật từ DB */}
+                <h3 className="text-3xl font-black text-orange-500">{learningStats.count}</h3>
             </div>
             <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-center hover:shadow-md transition-all">
                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Điểm TB</p>
-                <h3 className="text-3xl font-black text-blue-600">8.8</h3>
+                 {/* Dữ liệu thật từ DB */}
+                <h3 className="text-3xl font-black text-blue-600">{learningStats.score}</h3>
             </div>
         </div>
 
-        {/* --- PHẦN 2: BIỂU ĐỒ (NẰM NGANG BÊN DƯỚI) --- */}
+        {/* --- PHẦN 2: BIỂU ĐỒ --- */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-lg">
                     <TrendingUp size={24} className="text-indigo-600"/> Biểu đồ chăm chỉ
                 </h3>
-                {/* Chú thích nhỏ */}
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                        <span className="w-3 h-3 rounded-full bg-indigo-500"></span>
@@ -232,7 +242,6 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
                 </div>
             </div>
             
-            {/* Vùng chứa biểu đồ - Tăng chiều cao lên h-80 cho hoành tráng */}
             <div className="h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={activityData} barSize={40}>
@@ -258,7 +267,7 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
             </div>
         </div>
 
-        {/* --- PHẦN 3: DANH SÁCH KHÓA HỌC (GIỮ NGUYÊN) --- */}
+        {/* --- PHẦN 3: DANH SÁCH KHÓA HỌC --- */}
         <div className="mt-8">
             <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <PlayCircle className="text-indigo-600"/> Tiếp tục học
@@ -297,21 +306,19 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
 
 // 4. CART
   if (page === 'cart') {
-    // Tính toán các chỉ số tài chính
     const totalAmount = cart.reduce((t, c) => t + parseInt(c.price), 0);
     const totalItems = cart.length;
     const avgPrice = totalItems > 0 ? totalAmount / totalItems : 0;
     
-    // Giả lập ngân sách tháng (ví dụ 5 triệu) để hiện thanh tiến độ
+    // Giả lập ngân sách
     const budget = 5000000; 
     const percentUsed = Math.min((totalAmount / budget) * 100, 100);
 
     return (
       <div className="max-w-7xl mx-auto animate-fade-in-up py-10 space-y-8">
         
-        {/* --- PHẦN 1: DASHBOARD TÀI CHÍNH (MỚI) --- */}
+        {/* DASHBOARD TÀI CHÍNH */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Thẻ 1: Số lượng khóa */}
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden group">
                 <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                     <BookOpen size={32} />
@@ -323,7 +330,6 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
                 <div className="absolute -right-6 -bottom-6 text-blue-50 opacity-50"><BookOpen size={100}/></div>
             </div>
 
-            {/* Thẻ 2: Tổng đầu tư */}
             <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 rounded-[24px] shadow-lg text-white flex items-center gap-5 relative overflow-hidden">
                 <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white">
                     <DollarSign size={32} />
@@ -332,11 +338,9 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
                     <p className="text-indigo-100 font-bold text-xs uppercase tracking-wider">Tổng đầu tư tri thức</p>
                     <h3 className="text-3xl font-black">{formatMoney(totalAmount)}</h3>
                 </div>
-                {/* Hiệu ứng background */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
             </div>
 
-            {/* Thẻ 3: Trung bình chi phí */}
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden group">
                 <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                     <TrendingUp size={32} />
@@ -349,13 +353,11 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
             </div>
         </div>
 
-        {/* --- PHẦN 2: DANH SÁCH & THANH TOÁN --- */}
         <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
             <ShoppingBag className="text-indigo-600"/> Chi tiết giỏ hàng
         </h2>
 
         <div className="flex flex-col lg:flex-row gap-8">
-            {/* Cột trái: Danh sách sản phẩm */}
             <div className="w-full lg:w-3/4 space-y-4">
                 {cart.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200">
@@ -388,13 +390,11 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
                 )}
             </div>
 
-            {/* Cột phải: Thanh toán (Sticky) */}
             {cart.length > 0 && (
               <div className="w-full lg:w-1/4 h-fit">
                   <div className="bg-white p-6 rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 sticky top-6">
                       <h3 className="text-xl font-black text-slate-900 mb-6">Tổng kết đơn hàng</h3>
                       
-                      {/* Visual: Thanh ngân sách giả lập */}
                       <div className="mb-6">
                           <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
                               <span>Hạn mức đầu tư tháng</span>
@@ -416,7 +416,6 @@ const StudentView = ({ page, setPage, courses, cart, myCourses, handleAddToCart,
                           Thanh toán <CheckCircle2 size={20}/>
                       </button>
                       <div className="mt-4 flex justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-                           {/* Icon giả lập các phương thức thanh toán */}
                            <div className="w-8 h-5 bg-blue-600 rounded"></div>
                            <div className="w-8 h-5 bg-yellow-500 rounded"></div>
                            <div className="w-8 h-5 bg-slate-800 rounded"></div>
