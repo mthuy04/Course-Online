@@ -1,6 +1,10 @@
 // src/utils/helpers.js
 
-export const API_URL = 'http://localhost:8080/Course-Online/api'; // <--- Kiểm tra kỹ Port 8080 hay 80
+// Thay cái link https://... dưới đây bằng link Web Service bạn nhận được bên Render
+// Ví dụ: https://course-api-123.onrender.com/api
+// Nếu bên Render bạn đặt "Root Directory" là "api" thì bỏ chữ /api ở cuối đi cũng được, tùy thực tế.
+
+export const API_URL = 'https://web-khoa-hoc-api.onrender.com'; // <--- Kiểm tra kỹ Port 8080 hay 80
 
 export const getEmbedLink = (url) => {
   if (!url) return '';
