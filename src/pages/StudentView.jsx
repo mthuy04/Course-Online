@@ -49,11 +49,22 @@ const CourseCard3D = ({ course, onAction, onDetail }) => (
 );
 
 const HomeDashboard = ({ onAction }) => {
-  // (Biến data cũ không dùng nữa, bạn có thể xóa dòng này: const data = ...)
+  const [leaders, setLeaders] = useState([]);
+
+  // Gọi API lấy bảng xếp hạng thật
+  useEffect(() => {
+    fetch(`${API_URL}/get_leaderboard.php`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setLeaders(data);
+      })
+      .catch(err => console.error("Lỗi BXH:", err));
+  }, []);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
 
-      {/* --- BANNER MARKETING MỚI Ở ĐÂY --- */}
+      {/* --- BANNER MARKETING (GIỮ NGUYÊN) --- */}
       <div className="lg:col-span-2 bg-gradient-to-r from-rose-500 to-orange-500 p-8 rounded-[32px] text-white shadow-xl shadow-rose-200/50 relative overflow-hidden flex items-center">
         <div className="absolute -right-20 -top-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute -left-20 -bottom-20 w-60 h-60 bg-yellow-300/20 rounded-full blur-3xl"></div>
@@ -61,25 +72,44 @@ const HomeDashboard = ({ onAction }) => {
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 rounded-full text-xs font-bold mb-4 backdrop-blur-md border border-white/20"><Gift size={14} /> Ưu đãi giới hạn</span>
           <h3 className="text-3xl font-black mb-3 leading-tight">Combo Bứt Phá Điểm Số: <br/> Mua 2 Tặng 1</h3>
           <p className="text-rose-100 mb-6 max-w-md font-medium">Áp dụng cho các khóa Toán, Lý, Anh THPT. Nắm chắc kiến thức nền tảng và luyện đề chuyên sâu.</p>
-          <button 
-           onClick={() => {
-            console.log("Đã bấm nút!");
-            if (onAction) onAction();
-            else console.log("Lỗi: onAction bị null");
-            }}
-           className="bg-white text-rose-600 px-6 py-3 rounded-xl font-black shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2">Nhận ưu đãi ngay <ChevronRight size={18}/></button>
+          <button onClick={onAction} className="bg-white text-rose-600 px-6 py-3 rounded-xl font-black shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2">Nhận ưu đãi ngay <ChevronRight size={18}/></button>
         </div>
         <div className="hidden lg:block relative z-10 rotate-[-15deg] translate-y-6 translate-x-6"><Target size={140} className="text-white/80" strokeWidth={1.5} /></div>
-        
       </div>
-      <div className="bg-gradient-to-b from-indigo-600 to-violet-700 p-6 rounded-[32px] text-white shadow-lg shadow-indigo-200">
-        <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Trophy size={20} className="text-yellow-300"/> Bảng vàng thành tích</h3>
-        <div className="space-y-4">
-          {[{n:'Lê Văn A',p:'2400 XP',r:1},{n:'Trần Thị B',p:'2150 XP',r:2},{n:'Nguyễn C',p:'1900 XP',r:3},{n:'Bạn (Tôi)',p:'1200 XP',r:15}].map((u,i)=>(
-            <div key={i} className={`flex items-center justify-between p-3 rounded-2xl ${u.r===15?'bg-white/20 border border-white/30':'bg-white/10'}`}>
-              <div className="flex items-center gap-3"><span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${u.r<=3?'bg-yellow-400 text-yellow-900':'bg-slate-700 text-slate-300'}`}>{u.r}</span><span className="font-bold text-sm">{u.n}</span></div><span className="text-xs font-bold text-indigo-200">{u.p}</span>
+
+      {/* --- BẢNG VÀNG THÀNH TÍCH (ĐÃ CONNECT DB THẬT) --- */}
+      <div className="bg-gradient-to-b from-indigo-600 to-violet-700 p-6 rounded-[32px] text-white shadow-lg shadow-indigo-200 flex flex-col h-full">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+            <Trophy size={20} className="text-yellow-300"/> Bảng vàng thành tích
+        </h3>
+        
+        <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
+          {leaders.length > 0 ? leaders.map((u, i) => (
+            <div key={i} className={`flex items-center justify-between p-3 rounded-2xl transition-all hover:bg-white/10 ${u.rank === 1 ? 'bg-yellow-500/20 border border-yellow-400/50' : 'bg-white/5 border border-white/10'}`}>
+              <div className="flex items-center gap-3">
+                {/* Huy hiệu Rank */}
+                <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm shadow-md 
+                    ${u.rank === 1 ? 'bg-yellow-400 text-yellow-900' : 
+                      u.rank === 2 ? 'bg-slate-300 text-slate-800' : 
+                      u.rank === 3 ? 'bg-orange-400 text-orange-900' : 'bg-slate-700 text-slate-400'}`}>
+                    {u.rank}
+                </div>
+                
+                {/* Avatar & Tên */}
+                <div className="flex flex-col">
+                    <span className="font-bold text-sm truncate max-w-[120px]">{u.full_name}</span>
+                    {u.rank === 1 && <span className="text-[10px] text-yellow-300 font-bold">👑 Top 1 Server</span>}
+                </div>
+              </div>
+              
+              {/* Điểm XP */}
+              <span className="text-xs font-black text-white bg-white/20 px-2 py-1 rounded-lg">
+                {u.xp} XP
+              </span>
             </div>
-          ))}
+          )) : (
+            <div className="text-center text-indigo-200 italic text-sm mt-10">Đang tải dữ liệu...</div>
+          )}
         </div>
       </div>
     </div>
