@@ -12,27 +12,53 @@ import AdminView from './pages/AdminView';
 import LandingPage from './pages/LandingPage';
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(null); // Lưu thông tin user thật
-  const [showLoginModal, setShowLoginModal] = useState(false); // Quản lý bật/tắt Popup đăng nhập
+  // 1. QUẢN LÝ USER (AUTO LOGIN & F5 SAFE)
+  const [currentUser, setCurrentUser] = useState(() => {
+    // Ưu tiên lấy từ LocalStorage để khi F5 không bị mất login
+    const savedUser = localStorage.getItem('current_user');
+    // Nếu chưa có, mặc định là Student (ID=1) để vào thẳng
+    return savedUser ? JSON.parse(savedUser) : { 
+      id: 1, full_name: 'Bạn Học Sinh', role: 'student', email: 'student@studyhub.vn' 
+    };
+  });
+
+  const [role, setRole] = useState(currentUser?.role || 'student');
   
-  // Tự động coi là đã login nếu có currentUser
+  // Khi currentUser thay đổi, lưu ngay vào LocalStorage và cập nhật Role
+  useEffect(() => {
+    localStorage.setItem('current_user', JSON.stringify(currentUser));
+    if (currentUser) setRole(currentUser.role);
+  }, [currentUser]);
+
+  // Coi như đã login nếu có currentUser
   const isLoggedIn = !!currentUser;
-  
-  const [role, setRole] = useState('student');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // 2. STATE DỮ LIỆU
   const [page, setPage] = useState('home');
   const [courses, setCourses] = useState([]);
-  const [cart, setCart] = useState([]);
+  
+  // Giỏ hàng (Cũng lưu vào LocalStorage để F5 không mất)
+  const [cart, setCart] = useState(() => {
+    const savedCart = localStorage.getItem('shopping_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('shopping_cart', JSON.stringify(cart));
+  }, [cart]);
+
   const [myCourses, setMyCourses] = useState([]);
   const [stats, setStats] = useState({ revenue: 0, users: 0, courses: 0, transactions: [] });
 
-  // STATE MODAL & DATA
+  // STATE MODAL & DATA CHI TIẾT
   const [activeModal, setActiveModal] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [lessonList, setLessonList] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [detailTab, setDetailTab] = useState('intro'); // intro | lessons | reviews
 
-  // FORM DATA
+  // FORM DATA (CHO TEACHER/ADMIN)
   const [formData, setFormData] = useState({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -75,25 +101,17 @@ function App() {
 
   const handleLogin = async (username, password) => {
     try {
-      // Gọi API auth.php
       const res = await fetch(`${API_URL}/auth.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'login', // Quan trọng: Phải khớp với auth.php
-          username: username, 
-          password: password 
-        })
+        body: JSON.stringify({ action: 'login', username, password })
       });
-      
       const data = await res.json();
-      
       if (data.success) {
-        setCurrentUser(data.user); // Lưu user vào state (User này có id, role, full_name...)
-        setRole(data.user.role);   // Cập nhật luôn Role cho đúng
-        setShowLoginModal(false);  // Tắt popup
+        setCurrentUser(data.user);
+        setShowLoginModal(false);
       } else {
-        alert("❌ " + data.message); // Hiện lỗi (vd: Sai mật khẩu)
+        alert("❌ " + data.message);
       }
     } catch (err) {
       console.error(err);
@@ -102,28 +120,19 @@ function App() {
   };
 
   const handleSaveCourse = () => {
-      // 1. Validate cơ bản trước khi gửi
-      if (!formData.title) {
-          alert("Vui lòng nhập tên khóa học!");
-          return;
-      }
-  
+      if (!formData.title) { alert("Vui lòng nhập tên khóa học!"); return; }
       setIsLoading(true);
       const url = formData.id ? '/update.php' : '/add.php';
       
-      // 2. Chuẩn bị dữ liệu gửi đi (Payload)
       const payload = {
-        ...formData,
-        id: formData.id,
-        price: formData.price ? parseInt(formData.price) : 0,
-        // SỬA ĐOẠN NÀY:
-        teacher_id: currentUser ? currentUser.id : 0, // Gửi ID giảng viên lên
-        teacher_name: currentUser ? currentUser.full_name : 'Giảng viên',
+          ...formData,
+          id: formData.id,
+          price: formData.price ? parseInt(formData.price) : 0,
+          teacher_id: currentUser ? currentUser.id : 0,
+          teacher_name: currentUser ? currentUser.full_name : 'Giảng viên',
           video: getEmbedLink(formData.video),
           image: formData.image || 'https://img.freepik.com/free-vector/online-learning-isometric-concept_1284-17947.jpg'
       };
-  
-      console.log("Dữ liệu đang gửi đi:", payload); // [DEBUG] Xem log để check dữ liệu
   
       fetch(`${API_URL}${url}`, { 
           method: 'POST', 
@@ -132,57 +141,30 @@ function App() {
       })
       .then(r => r.json())
       .then(d => {
-          console.log("Backend trả về:", d); // [DEBUG] Xem backend trả về gì
-  
           if (d.success) {
-              // QUAN TRỌNG: Lấy ID khóa học vừa tạo (nếu là add) hoặc ID cũ (nếu là update)
               const cid = formData.id || d.id; 
-  
-              if (!cid) {
-                  alert("Lỗi: Backend không trả về ID khóa học mới. Kiểm tra file add.php!");
-                  setIsLoading(false);
-                  return;
-              }
-  
-              // Gửi mảng lessons để lưu vào database bài giảng
+              if (!cid) { setIsLoading(false); return; }
+
+              // Lưu bài học
               fetch(`${API_URL}/save_lessons.php`, { 
                   method: 'POST', 
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ course_id: cid, lessons: formData.lessons }) 
               })
-              .then(r => r.text()) // Dùng text() trước để tránh lỗi nếu backend trả về lỗi PHP (HTML)
-              .then(responseString => {
-                  console.log("Save lessons response:", responseString); // [DEBUG]
-                  
-                  try {
-                     // Thử parse JSON, nếu backend in ra lỗi PHP thì sẽ bắt ở catch
-                     const result = JSON.parse(responseString); 
-                     // Hoặc nếu backend của bạn không trả về json ở save_lessons thì bỏ qua dòng này
-                  } catch (e) {
-                     console.warn("Save lessons không trả về JSON chuẩn, nhưng vẫn tiếp tục.");
-                  }
-  
+              .then(() => {
                   alert(formData.id ? "✅ Cập nhật thành công!" : "✅ Tạo khóa học mới thành công!");
                   setActiveModal(null);
-                  fetchData(); // Load lại danh sách
-              })
-              .catch(err => console.error("Lỗi lưu bài học:", err));
-  
+                  fetchData();
+              });
           } else {
               alert("Lỗi từ server: " + (d.message || "Không xác định"));
           }
       })
-      .catch(err => {
-          console.error("Lỗi kết nối API:", err);
-          alert("Không thể kết nối đến Server. Vui lòng kiểm tra Console.");
-      })
-      .finally(() => {
-          setIsLoading(false);
-      });
+      .catch(err => alert("Lỗi kết nối Server!"))
+      .finally(() => setIsLoading(false));
   };
 
   const handlePayment = () => {
-    // Nếu chưa có user_id thật, dùng tạm ID của currentUser hoặc mặc định 1
     const userId = currentUser ? currentUser.id : 1;
     const total = cart.reduce((t, c) => t + parseInt(c.price), 0);
     
@@ -203,9 +185,7 @@ function App() {
   };
 
   const handleDeleteCourse = (course) => {
-    if (!confirm(`Bạn có chắc muốn xóa khóa học: "${course.title}"?\nHành động này không thể hoàn tác!`)) return;
-
-    // Gọi API xóa
+    if (!confirm(`Bạn có chắc muốn xóa khóa học: "${course.title}"?`)) return;
     fetch(`${API_URL}/delete.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -215,29 +195,11 @@ function App() {
       .then(data => {
         if (data.success) {
           alert("✅ Đã xóa khóa học thành công!");
-          // Cập nhật lại giao diện ngay lập tức
           setCourses(courses.filter(c => c.id !== course.id));
-          fetchData(); // Load lại số liệu thống kê nếu cần
-        } else {
-          alert("❌ Lỗi: " + data.message);
-        }
-      })
-      .catch(err => console.error("Lỗi xóa:", err));
+          fetchData();
+        } else alert("❌ Lỗi: " + data.message);
+      });
   };
-
-  // --- HIỂN THỊ LANDING PAGE & LOGIN MODAL NẾU CHƯA LOGIN ---
-  if (!isLoggedIn) {
-    return (
-      <>
-        <LandingPage onLoginClick={() => setShowLoginModal(true)} />
-        {showLoginModal && (
-          <Modal title="Đăng nhập hệ thống" onClose={() => setShowLoginModal(false)} maxWidth="max-w-md">
-            <LoginForm onSubmit={handleLogin} />
-          </Modal>
-        )}
-      </>
-    );
-  }
 
   // --- GIAO DIỆN CHÍNH ---
   return (
@@ -250,7 +212,40 @@ function App() {
           {role === 'teacher' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Giảng dạy</div><SidebarItem id="home" icon={LayoutDashboard} label="Tổng quan" active={page === 'home'} onClick={setPage} /><SidebarItem id="schedule" icon={Calendar} label="Lịch dạy" active={page === 'schedule'} onClick={setPage} /><SidebarItem id="qa" icon={MessageCircle} label="Hỏi đáp" active={page === 'qa'} onClick={setPage} /></>}
           {role === 'admin' && <><div className="text-xs font-black text-slate-400 uppercase tracking-wider px-4 mb-2 mt-4">Quản trị</div><SidebarItem id="home" icon={BarChart3} label="Dashboard" active={page === 'home'} onClick={setPage} /><SidebarItem id="finance" icon={DollarSign} label="Tài chính" active={page === 'finance'} onClick={setPage} /><SidebarItem id="users" icon={Users} label="Người dùng" active={page === 'users'} onClick={setPage} /><SidebarItem id="marketing" icon={Megaphone} label="Marketing" active={page === 'marketing'} onClick={setPage} /><SidebarItem id="settings" icon={Settings} label="Cấu hình" active={page === 'settings'} onClick={setPage} /></>}
         </nav>
-        <div className="mt-auto pt-6 border-t border-slate-100"><div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4"><img src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" /><div className="flex-1"><p className="text-sm font-bold capitalize">{currentUser?.full_name || role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div><button onClick={() => setCurrentUser(null)}><Bell size={16} /></button></div></div>
+        
+        {/* FOOTER SIDEBAR (AVATAR & ROLE SWITCHER) */}
+        <div className="mt-auto pt-6 border-t border-slate-100">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
+                <img src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${role}&background=random`} className="w-10 h-10 rounded-full" />
+                <div className="flex-1"><p className="text-sm font-bold capitalize">{currentUser?.full_name || role}</p><p className="text-[10px] text-slate-500 uppercase font-bold">Online</p></div>
+                <button onClick={() => setCurrentUser(null)}><Bell size={16} /></button>
+            </div>
+            
+            {/* ROLE SWITCHER: CLICK LÀ ĐỔI NGAY KHÔNG CẦN PASS */}
+            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg">
+                <button 
+                    onClick={() => { 
+                        const u = { id: 1, full_name: 'Bạn Học Sinh', role: 'student', email: 'student@studyhub.vn' };
+                        setCurrentUser(u); setRole('student'); setPage('home');
+                    }} 
+                    className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'student' ? 'bg-white shadow text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >STU</button>
+                <button 
+                    onClick={() => { 
+                        const u = { id: 2, full_name: 'Cô Giáo Mai', role: 'teacher', email: 'mai.gv@studyhub.vn' };
+                        setCurrentUser(u); setRole('teacher'); setPage('home');
+                    }} 
+                    className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'teacher' ? 'bg-white shadow text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >TEA</button>
+                <button 
+                    onClick={() => { 
+                        const u = { id: 3, full_name: 'Admin Hệ Thống', role: 'admin', email: 'admin@studyhub.vn' };
+                        setCurrentUser(u); setRole('admin'); setPage('home');
+                    }} 
+                    className={`text-[10px] font-bold uppercase py-1.5 rounded transition-all ${role === 'admin' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+                >ADM</button>
+            </div>
+        </div>
       </aside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50/50">
@@ -258,7 +253,7 @@ function App() {
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {role === 'student' && <StudentView
-            currentUser={currentUser} // Truyền user thật xuống
+            currentUser={currentUser}
             page={page}
             setPage={setPage}
             courses={courses}
@@ -269,42 +264,21 @@ function App() {
             handlePayment={handlePayment}
             onOpenDetail={handleOpenDetail}
             onOpenPromo={() => setActiveModal('promo')}
-            onOpenLearning={(c) => {
-              setSelectedCourse(c);
-              fetchLessons(c.id);
-              setActiveModal('learning');
-            }} />}
+            onOpenLearning={(c) => { setSelectedCourse(c); fetchLessons(c.id); setActiveModal('learning'); }} />}
+          
           {role === 'teacher' && <TeacherView 
-            currentUser={currentUser} // Truyền user thật xuống
+            currentUser={currentUser}
             courses={courses} 
             onOpenUpload={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }} 
             onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }} 
             page={page} 
           />}
-          {/* App.jsx */}
-          {role === 'admin' && (
-            <AdminView 
-              courses={courses} 
-              stats={stats} 
-              onDeleteCourse={handleDeleteCourse} 
-              page={page} 
-              // Tên prop này phải viết chính xác từng chữ cái
-              onAddNewCourse={() => {
-                setFormData({ 
-                  id: null, title: '', price: '', level: 'cap1', 
-                  teacher_name: '', description: '', video: '', 
-                  image: '', lessons: [] 
-                });
-                setActiveModal('upload');
-              }}
-              onEditCourse={(c) => { 
-                fetchLessons(c.id, (l) => { 
-                  setFormData({ ...c, lessons: l }); 
-                  setActiveModal('upload'); 
-                }); 
-              }}
-            />
-          )}
+          
+          {role === 'admin' && <AdminView 
+              courses={courses} stats={stats} onDeleteCourse={handleDeleteCourse} page={page} 
+              onAddNewCourse={() => { setFormData({ id: null, title: '', price: '', level: 'cap1', teacher_name: '', description: '', video: '', image: '', lessons: [] }); setActiveModal('upload'); }}
+              onEditCourse={(c) => { fetchLessons(c.id, (l) => { setFormData({ ...c, lessons: l }); setActiveModal('upload'); }); }}
+          />}
         </div>
       </main>
 
@@ -316,28 +290,14 @@ function App() {
             <div className="w-full lg:w-5/12 space-y-6">
               <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-100 relative group">
                 {(selectedCourse.id == 4 || selectedCourse.id === '4') && (
-                  <div className="absolute top-0 right-0 z-10">
-                    <div className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-bl-2xl shadow-xl flex items-center gap-2 uppercase tracking-wider">
-                      <span className="animate-pulse">🔥</span> BESTSELLER
-                    </div>
-                  </div>
+                  <div className="absolute top-0 right-0 z-10"><div className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-bl-2xl shadow-xl flex items-center gap-2 uppercase tracking-wider"><span className="animate-pulse">🔥</span> BESTSELLER</div></div>
                 )}
-                {selectedCourse.video ? (
-                  <iframe className="w-full h-full" src={getEmbedLink(selectedCourse.video)} frameBorder="0" allowFullScreen></iframe>
-                ) : (
-                  <img src={selectedCourse.image} className="w-full h-full object-cover" />
-                )}
+                {selectedCourse.video ? <iframe className="w-full h-full" src={getEmbedLink(selectedCourse.video)} frameBorder="0" allowFullScreen></iframe> : <img src={selectedCourse.image} className="w-full h-full object-cover" />}
               </div>
-
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                 <h2 className="text-2xl font-black text-slate-900 mb-2">{selectedCourse.title}</h2>
                 <p className="text-3xl font-black text-indigo-600 mb-4">{parseInt(selectedCourse.price) === 0 ? 'Miễn phí' : formatMoney(selectedCourse.price)}</p>
-                <button
-                  onClick={() => { setCart([...cart, selectedCourse]); setActiveModal(null); }}
-                  className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-lg shadow-xl hover:bg-indigo-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-                >
-                  <ShoppingBag size={20} /> Thêm vào giỏ
-                </button>
+                <button onClick={() => { setCart([...cart, selectedCourse]); setActiveModal(null); }} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-lg shadow-xl hover:bg-indigo-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"><ShoppingBag size={20} /> Thêm vào giỏ</button>
                 <div className="mt-6 space-y-3">
                   <div className="flex justify-between text-sm"><span className="text-slate-500">Giảng viên</span><span className="font-bold">{selectedCourse.teacher_name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-slate-500">Thời lượng</span><span className="font-bold">{selectedCourse.duration || '20 giờ'}</span></div>
@@ -346,307 +306,78 @@ function App() {
                 </div>
               </div>
             </div>
-
             {/* CỘT PHẢI */}
             <div className="flex-1 flex flex-col">
               <div className="flex border-b border-slate-200 mb-6">
                 {[{ id: 'intro', l: 'Giới thiệu' }, { id: 'lessons', l: `Nội dung (${lessonList.length})` }, { id: 'reviews', l: 'Đánh giá' }].map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setDetailTab(t.id)}
-                    className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${detailTab === t.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-                  >
-                    {t.l}
-                  </button>
+                  <button key={t.id} onClick={() => setDetailTab(t.id)} className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${detailTab === t.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.l}</button>
                 ))}
               </div>
-
               <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 h-[400px]">
                 {detailTab === 'intro' && (
                   <div className="space-y-4 text-slate-600 leading-relaxed">
                     <p className="font-medium text-lg text-slate-800">Bạn sẽ học được gì?</p>
-                    <ul className="grid grid-cols-1 gap-2 mb-4">
-                      {['Nắm vững kiến thức nền tảng.', 'Luyện tập với bộ đề thi thực chiến.', 'Giải đáp thắc mắc trực tiếp cùng giáo viên.', 'Chứng chỉ hoàn thành khóa học.'].map((item, i) => (
-                        <li key={i} className="flex gap-2 items-start"><CheckCircle2 size={18} className="text-green-500 mt-0.5 shrink-0" /> <span>{item}</span></li>
-                      ))}
-                    </ul>
-                    <p className="font-medium text-lg text-slate-800 mt-6">Mô tả chi tiết</p>
-                    <p>{selectedCourse.description || "Khóa học được thiết kế độc quyền bởi đội ngũ giáo viên giàu kinh nghiệm tại StudyHub."}</p>
+                    <ul className="grid grid-cols-1 gap-2 mb-4">{['Nắm vững kiến thức nền tảng.', 'Luyện tập với bộ đề thi thực chiến.', 'Giải đáp thắc mắc trực tiếp cùng giáo viên.', 'Chứng chỉ hoàn thành khóa học.'].map((item, i) => (<li key={i} className="flex gap-2 items-start"><CheckCircle2 size={18} className="text-green-500 mt-0.5 shrink-0" /> <span>{item}</span></li>))}</ul>
+                    <p className="font-medium text-lg text-slate-800 mt-6">Mô tả chi tiết</p><p>{selectedCourse.description || "Khóa học được thiết kế độc quyền bởi đội ngũ giáo viên giàu kinh nghiệm tại StudyHub."}</p>
                   </div>
                 )}
-
                 {detailTab === 'lessons' && (
                   <div className="space-y-3">
                     {lessonList.length === 0 && <p className="text-slate-400 italic">Đang cập nhật nội dung...</p>}
-                    {lessonList.map((l, i) => (
-                      <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all cursor-default">
-                        <div className="flex gap-3 items-center">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">{i + 1}</div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{l.title}</p>
-                            <p className="text-xs text-slate-500">{l.type === 'quiz' ? 'Bài kiểm tra' : 'Video bài giảng'} • {l.duration}</p>
-                          </div>
-                        </div>
-                        {l.type === 'video' ? <PlayCircle size={18} className="text-slate-400" /> : <FileText size={18} className="text-slate-400" />}
-                      </div>
-                    ))}
+                    {lessonList.map((l, i) => (<div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center group hover:bg-white hover:shadow-md transition-all cursor-default"><div className="flex gap-3 items-center"><div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">{i + 1}</div><div><p className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{l.title}</p><p className="text-xs text-slate-500">{l.type === 'quiz' ? 'Bài kiểm tra' : 'Video bài giảng'} • {l.duration}</p></div></div>{l.type === 'video' ? <PlayCircle size={18} className="text-slate-400" /> : <FileText size={18} className="text-slate-400" />}</div>))}
                   </div>
                 )}
-
-                {detailTab === 'reviews' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4 bg-yellow-50 p-6 rounded-2xl">
-                      <div className="text-center">
-                        <p className="text-4xl font-black text-yellow-500">4.9</p>
-                        <div className="flex text-yellow-400 text-xs mt-1"><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /></div>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        {[5, 4, 3, 2, 1].map(star => (
-                          <div key={star} className="flex items-center gap-2 text-xs text-slate-500">
-                            <span className="w-2">{star}</span>
-                            <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-yellow-400" style={{ width: star === 5 ? '80%' : star === 4 ? '15%' : '5%' }}></div></div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="border-b border-slate-100 pb-4">
-                          <div className="flex gap-3 items-center mb-2">
-                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center font-bold text-xs text-slate-600"><User size={14} /></div>
-                            <div><p className="font-bold text-sm text-slate-800">Học viên ẩn danh</p><div className="flex text-yellow-400 text-[10px]"><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /></div></div>
-                          </div>
-                          <p className="text-sm text-slate-600">Khóa học rất hay, thầy dạy dễ hiểu.</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {detailTab === 'reviews' && (<div className="space-y-6"><div className="flex items-center gap-4 bg-yellow-50 p-6 rounded-2xl"><div className="text-center"><p className="text-4xl font-black text-yellow-500">4.9</p><div className="flex text-yellow-400 text-xs mt-1"><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /><Star fill="currentColor" /></div></div><div className="flex-1 space-y-1">{[5, 4, 3, 2, 1].map(star => (<div key={star} className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2">{star}</span><div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-yellow-400" style={{ width: star === 5 ? '80%' : star === 4 ? '15%' : '5%' }}></div></div></div>))}</div></div><div className="space-y-4">{[1, 2, 3].map(i => (<div key={i} className="border-b border-slate-100 pb-4"><div className="flex gap-3 items-center mb-2"><div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center font-bold text-xs text-slate-600"><User size={14} /></div><div><p className="font-bold text-sm text-slate-800">Học viên ẩn danh</p><div className="flex text-yellow-400 text-[10px]"><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /></div></div></div><p className="text-sm text-slate-600">Khóa học rất hay, thầy dạy dễ hiểu.</p></div>))}</div></div>)}
               </div>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* --- MODAL UPLOAD NÂNG CẤP --- */}
+      {/* --- MODAL UPLOAD KHÓA HỌC --- */}
       {activeModal === 'upload' && (
-        <Modal 
-          title={formData.id ? "Cập nhật nội dung" : (role === 'admin' ? "Hệ thống: Khởi tạo khóa học" : "Soạn khóa học mới")} 
-          onClose={() => setActiveModal(null)} 
-          maxWidth="max-w-4xl"
-        >
+        <Modal title={formData.id ? "Cập nhật nội dung" : (role === 'admin' ? "Hệ thống: Khởi tạo khóa học" : "Soạn khóa học mới")} onClose={() => setActiveModal(null)} maxWidth="max-w-4xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* CỘT TRÁI: THÔNG TIN CHUNG */}
             <div className="space-y-4">
-              {/* Chỉ Admin mới thấy ô nhập tên Giảng viên để khởi tạo khóa học */}
-              {role === 'admin' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-indigo-600 uppercase">Phân công Giảng viên</label>
-                  <input 
-                    placeholder="Nhập tên giảng viên phụ trách..."
-                    value={formData.teacher_name} 
-                    onChange={e => setFormData({ ...formData, teacher_name: e.target.value })} 
-                    className="w-full p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl font-bold outline-none focus:ring-2 ring-indigo-500" 
-                  />
-                </div>
-              )}
-      
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase">Tên khóa học</label>
-                <input 
-                  value={formData.title} 
-                  onChange={e => setFormData({ ...formData, title: e.target.value })} 
-                  className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none focus:border-slate-400" 
-                />
-              </div>
-      
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Học phí (VNĐ)</label>
-                  <input 
-                    type="number" 
-                    value={formData.price} 
-                    onChange={e => setFormData({ ...formData, price: e.target.value })} 
-                    className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Cấp độ</label>
-                  <select 
-                    value={formData.level} 
-                    onChange={e => setFormData({ ...formData, level: e.target.value })} 
-                    className="w-full p-3 bg-slate-50 border rounded-xl outline-none font-bold"
-                  >
-                    <option value="cap1">Tiểu học (CAP1)</option>
-                    <option value="cap2">THCS (CAP2)</option>
-                    <option value="cap3">THPT (CAP3)</option>
-                  </select>
-                </div>
-              </div>
-      
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase">Link Video Giới thiệu</label>
-                <input 
-                  value={formData.video} 
-                  onChange={e => setFormData({ ...formData, video: e.target.value })} 
-                  placeholder="Youtube link..."
-                  className="w-full p-3 bg-slate-50 border rounded-xl outline-none" 
-                />
-              </div>
+              {role === 'admin' && (<div className="space-y-2"><label className="text-xs font-black text-indigo-600 uppercase">Phân công Giảng viên</label><input placeholder="Nhập tên giảng viên phụ trách..." value={formData.teacher_name} onChange={e => setFormData({ ...formData, teacher_name: e.target.value })} className="w-full p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl font-bold outline-none focus:ring-2 ring-indigo-500" /></div>)}
+              <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase">Tên khóa học</label><input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none focus:border-slate-400" /></div>
+              <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase">Học phí (VNĐ)</label><input type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none" /></div><div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase">Cấp độ</label><select value={formData.level} onChange={e => setFormData({ ...formData, level: e.target.value })} className="w-full p-3 bg-slate-50 border rounded-xl outline-none font-bold"><option value="cap1">Tiểu học (CAP1)</option><option value="cap2">THCS (CAP2)</option><option value="cap3">THPT (CAP3)</option></select></div></div>
+              <div className="space-y-2"><label className="text-xs font-bold text-slate-500 uppercase">Link Video Giới thiệu</label><input value={formData.video} onChange={e => setFormData({ ...formData, video: e.target.value })} placeholder="Youtube link..." className="w-full p-3 bg-slate-50 border rounded-xl outline-none" /></div>
             </div>
-      
-            {/* CỘT PHẢI: QUẢN LÝ DANH SÁCH BÀI GIẢNG (LESSONS) */}
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col">
-              <div className="flex justify-between items-center mb-4">
-                <label className="text-xs font-black text-slate-500 uppercase">Cấu trúc bài giảng ({formData.lessons.length})</label>
-                <button 
-                  onClick={() => setFormData({ ...formData, lessons: [...formData.lessons, { title: '', type: 'video', duration: '15:00' }] })} 
-                  className="text-[10px] bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-600 transition-colors"
-                >
-                  + THÊM BÀI MỚI
-                </button>
-              </div>
-      
+              <div className="flex justify-between items-center mb-4"><label className="text-xs font-black text-slate-500 uppercase">Cấu trúc bài giảng ({formData.lessons.length})</label><button onClick={() => setFormData({ ...formData, lessons: [...formData.lessons, { title: '', type: 'video', duration: '15:00' }] })} className="text-[10px] bg-slate-900 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-600 transition-colors">+ THÊM BÀI MỚI</button></div>
               <div className="flex-1 overflow-y-auto space-y-3 max-h-[300px] pr-2 custom-scrollbar">
-                {formData.lessons.length === 0 && (
-                  <div className="text-center py-10 text-slate-400 text-xs italic">Chưa có bài giảng nào được thêm.</div>
-                )}
-                {formData.lessons.map((l, i) => (
-                  <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                    <div className="flex gap-2 items-center">
-                      <span className="text-[10px] font-black text-slate-400 w-4">{i + 1}</span>
-                      <input 
-                        placeholder="Tên bài học..."
-                        value={l.title} 
-                        onChange={e => {
-                          const n = [...formData.lessons];
-                          n[i].title = e.target.value;
-                          setFormData({ ...formData, lessons: n });
-                        }} 
-                        className="flex-1 text-sm font-bold outline-none" 
-                      />
-                      <button 
-                        className="text-slate-300 hover:text-red-500"
-                        onClick={() => {
-                          const n = [...formData.lessons];
-                          n.splice(i, 1);
-                          setFormData({ ...formData, lessons: n });
-                        }}
-                      >
-                        <Search size={14} className="rotate-45" /> {/* Dùng tạm icon Search xoay làm dấu X nếu không import X */}
-                      </button>
-                    </div>
-                    <div className="flex gap-4">
-                        <select 
-                          value={l.type}
-                          onChange={e => {
-                              const n = [...formData.lessons];
-                              n[i].type = e.target.value;
-                              setFormData({ ...formData, lessons: n });
-                          }}
-                          className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded"
-                        >
-                            <option value="video">Video</option>
-                            <option value="quiz">Quiz</option>
-                        </select>
-                        <input 
-                          placeholder="Thời lượng (vd: 10:00)"
-                          value={l.duration}
-                          onChange={e => {
-                              const n = [...formData.lessons];
-                              n[i].duration = e.target.value;
-                              setFormData({ ...formData, lessons: n });
-                          }}
-                          className="text-[10px] font-medium text-slate-500 outline-none w-20"
-                        />
-                    </div>
-                  </div>
-                ))}
+                {formData.lessons.length === 0 && <div className="text-center py-10 text-slate-400 text-xs italic">Chưa có bài giảng nào được thêm.</div>}
+                {formData.lessons.map((l, i) => (<div key={i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2"><div className="flex gap-2 items-center"><span className="text-[10px] font-black text-slate-400 w-4">{i + 1}</span><input placeholder="Tên bài học..." value={l.title} onChange={e => { const n = [...formData.lessons]; n[i].title = e.target.value; setFormData({ ...formData, lessons: n }); }} className="flex-1 text-sm font-bold outline-none" /><button className="text-slate-300 hover:text-red-500" onClick={() => { const n = [...formData.lessons]; n.splice(i, 1); setFormData({ ...formData, lessons: n }); }}><Search size={14} className="rotate-45" /></button></div><div className="flex gap-4"><select value={l.type} onChange={e => { const n = [...formData.lessons]; n[i].type = e.target.value; setFormData({ ...formData, lessons: n }); }} className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded"><option value="video">Video</option><option value="quiz">Quiz</option></select><input placeholder="Thời lượng" value={l.duration} onChange={e => { const n = [...formData.lessons]; n[i].duration = e.target.value; setFormData({ ...formData, lessons: n }); }} className="text-[10px] font-medium text-slate-500 outline-none w-20" /></div></div>))}
               </div>
-      
-              <button 
-                onClick={handleSaveCourse} 
-                disabled={isLoading || !formData.title} 
-                className={`mt-6 w-full py-4 rounded-xl font-black text-sm tracking-widest transition-all ${isLoading ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:scale-[1.02]'}`}
-              >
-                {isLoading ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN LƯU HỆ THỐNG'}
-              </button>
+              <button onClick={handleSaveCourse} disabled={isLoading || !formData.title} className={`mt-6 w-full py-4 rounded-xl font-black text-sm tracking-widest transition-all ${isLoading ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:scale-[1.02]'}`}>{isLoading ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN LƯU HỆ THỐNG'}</button>
             </div>
           </div>
         </Modal>
       )}
-      {/* --- MODAL HỌC TẬP (MÀN HÌNH XEM VIDEO) --- */}
+
+      {/* --- MODAL HỌC TẬP --- */}
       {activeModal === 'learning' && selectedCourse && (
         <Modal title={`Đang học: ${selectedCourse.title}`} onClose={() => setActiveModal(null)} maxWidth="max-w-7xl">
           <div className="flex flex-col lg:flex-row gap-6 h-[80vh]">
-
-            {/* CỘT TRÁI: Màn hình Video / Quiz */}
             <div className="flex-1 flex flex-col">
               <div className="flex-1 bg-black rounded-xl overflow-hidden shadow-lg relative group border border-slate-800">
-                {currentLesson ? (
-                  currentLesson.type === 'quiz' ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-white p-10 text-center">
-                      <HelpCircle size={64} className="text-indigo-600 mb-4" />
-                      <h3 className="text-2xl font-bold text-slate-800 mb-2">{currentLesson.title}</h3>
-                      <p className="text-slate-500 mb-6">Đây là bài kiểm tra trắc nghiệm. Hãy làm bài cẩn thận nhé!</p>
-                      <button className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Bắt đầu làm bài</button>
-                    </div>
-                  ) : (
-                    <iframe
-                      className="w-full h-full"
-                      src={getEmbedLink(currentLesson.video_url || currentLesson.video)}
-                      title="Lesson Video"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
-                  )
-                ) : (
-                  <div className="flex items-center justify-center h-full text-white">Chọn một bài học để bắt đầu</div>
-                )}
+                {currentLesson ? (currentLesson.type === 'quiz' ? (<div className="w-full h-full flex flex-col items-center justify-center bg-white p-10 text-center"><HelpCircle size={64} className="text-indigo-600 mb-4" /><h3 className="text-2xl font-bold text-slate-800 mb-2">{currentLesson.title}</h3><p className="text-slate-500 mb-6">Đây là bài kiểm tra trắc nghiệm. Hãy làm bài cẩn thận nhé!</p><button className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Bắt đầu làm bài</button></div>) : (<iframe className="w-full h-full" src={getEmbedLink(currentLesson.video_url || currentLesson.video)} title="Lesson Video" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>)) : (<div className="flex items-center justify-center h-full text-white">Chọn một bài học để bắt đầu</div>)}
               </div>
-              <div className="mt-4 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">{currentLesson?.title || 'Chưa chọn bài'}</h3>
-                  <p className="text-sm text-slate-500">Thời lượng: {currentLesson?.duration}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 font-bold text-sm text-slate-600">Bài trước</button>
-                  <button className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold text-sm text-white">Bài tiếp theo</button>
-                </div>
-              </div>
+              <div className="mt-4 flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200"><div><h3 className="font-bold text-lg text-slate-800">{currentLesson?.title || 'Chưa chọn bài'}</h3><p className="text-sm text-slate-500">Thời lượng: {currentLesson?.duration}</p></div><div className="flex gap-2"><button className="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 font-bold text-sm text-slate-600">Bài trước</button><button className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold text-sm text-white">Bài tiếp theo</button></div></div>
             </div>
-
-            {/* CỘT PHẢI: Danh sách bài học */}
             <div className="w-full lg:w-80 flex flex-col bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="p-4 border-b border-slate-100 bg-slate-50">
-                <h4 className="font-bold text-slate-800">Nội dung khóa học</h4>
-                <p className="text-xs text-slate-500 mt-1">{lessonList.length} bài học</p>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
-                {lessonList.map((l, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setCurrentLesson(l)}
-                    className={`p-3 rounded-lg cursor-pointer transition-all flex gap-3 items-center ${currentLesson?.id === l.id ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50 border border-transparent'}`}
-                  >
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${currentLesson?.id === l.id ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${currentLesson?.id === l.id ? 'text-indigo-700' : 'text-slate-700'}`}>{l.title}</p>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">
-                        {l.type === 'video' ? <PlayCircle size={10} /> : <HelpCircle size={10} />}
-                        <span>{l.duration}</span>
-                      </div>
-                    </div>
-                    {currentLesson?.id === l.id && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
-                  </div>
-                ))}
-              </div>
+              <div className="p-4 border-b border-slate-100 bg-slate-50"><h4 className="font-bold text-slate-800">Nội dung khóa học</h4><p className="text-xs text-slate-500 mt-1">{lessonList.length} bài học</p></div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">{lessonList.map((l, i) => (<div key={i} onClick={() => setCurrentLesson(l)} className={`p-3 rounded-lg cursor-pointer transition-all flex gap-3 items-center ${currentLesson?.id === l.id ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50 border border-transparent'}`}><div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${currentLesson?.id === l.id ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{i + 1}</div><div className="flex-1 min-w-0"><p className={`text-sm font-medium truncate ${currentLesson?.id === l.id ? 'text-indigo-700' : 'text-slate-700'}`}>{l.title}</p><div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5">{l.type === 'video' ? <PlayCircle size={10} /> : <HelpCircle size={10} />}<span>{l.duration}</span></div></div>{currentLesson?.id === l.id && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}</div>))}</div>
             </div>
-
           </div>
+        </Modal>
+      )}
+
+      {/* --- MODAL LOGIN --- */}
+      {showLoginModal && (
+        <Modal title="Đăng nhập hệ thống" onClose={() => setShowLoginModal(false)} maxWidth="max-w-md">
+           <LoginForm onSubmit={handleLogin} />
         </Modal>
       )}
 
@@ -658,37 +389,12 @@ function App() {
 const LoginForm = ({ onSubmit }) => {
   const [u, setU] = useState('');
   const [p, setP] = useState('');
-
   return (
     <div className="space-y-4 p-4">
-      <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Tài khoản</label>
-        <input 
-          value={u} onChange={e => setU(e.target.value)}
-          className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Ví dụ: student"
-          autoFocus
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">Mật khẩu</label>
-        <input 
-          type="password"
-          value={p} onChange={e => setP(e.target.value)}
-          className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Ví dụ: 123"
-          onKeyDown={(e) => e.key === 'Enter' && onSubmit(u, p)}
-        />
-      </div>
-      <button 
-        onClick={() => onSubmit(u, p)}
-        className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black shadow-lg hover:bg-indigo-700 transition-all"
-      >
-        ĐĂNG NHẬP NGAY
-      </button>
-      <p className="text-center text-xs text-slate-400">
-        Gợi ý: student / 123
-      </p>
+      <div><label className="block text-sm font-bold text-slate-700 mb-1">Tài khoản</label><input value={u} onChange={e => setU(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ví dụ: student" autoFocus /></div>
+      <div><label className="block text-sm font-bold text-slate-700 mb-1">Mật khẩu</label><input type="password" value={p} onChange={e => setP(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ví dụ: 123" onKeyDown={(e) => e.key === 'Enter' && onSubmit(u, p)} /></div>
+      <button onClick={() => onSubmit(u, p)} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black shadow-lg hover:bg-indigo-700 transition-all">ĐĂNG NHẬP NGAY</button>
+      <p className="text-center text-xs text-slate-400">Gợi ý: student / 123</p>
     </div>
   );
 };
