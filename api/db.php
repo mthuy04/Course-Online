@@ -1,4 +1,5 @@
 <?php
+
 // --- CẤU HÌNH CORS (Để Frontend gọi được API) ---
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
@@ -27,4 +28,3 @@ if ($conn->connect_error) {
     echo json_encode(["success" => false, "message" => "Lỗi kết nối DB: " . $conn->connect_error]);
     exit();
 }
-?>
