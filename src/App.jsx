@@ -113,11 +113,12 @@ function App() {
       
       // 2. Chuẩn bị dữ liệu gửi đi (Payload)
       const payload = {
-          ...formData,
-          id: formData.id, // Đảm bảo gửi ID nếu là update
-          price: formData.price ? parseInt(formData.price) : 0, // Ép kiểu số cho an toàn
-          // Logic tên giảng viên:
-          teacher_name: role === 'admin' ? (formData.teacher_name || 'Admin Hệ Thống') : 'Giảng viên (Tôi)',
+        ...formData,
+        id: formData.id,
+        price: formData.price ? parseInt(formData.price) : 0,
+        // SỬA ĐOẠN NÀY:
+        teacher_id: currentUser ? currentUser.id : 0, // Gửi ID giảng viên lên
+        teacher_name: currentUser ? currentUser.full_name : 'Giảng viên',
           video: getEmbedLink(formData.video),
           image: formData.image || 'https://img.freepik.com/free-vector/online-learning-isometric-concept_1284-17947.jpg'
       };
