@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// Thêm chữ useEffect vào trong ngoặc nhọn
+import { useState, useEffect } from 'react';
 import { 
   Plus, Users, PlayCircle, BookOpen, Trash2, ChevronRight, 
   Sparkles, CheckCircle2, Calendar, Trophy, Clock, 
