@@ -59,8 +59,9 @@ const QuizSimulator = ({ title, onFinish }) => {
   );
 
   return (
-    <div className="max-w-2xl mx-auto p-8 h-full flex flex-col justify-center animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white w-full h-full overflow-y-auto"> 
+      <div className="max-w-2xl mx-auto p-8 h-full flex flex-col justify-center animate-fade-in">
+        <div className="flex justify-between items-center mb-6"></div>
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Câu hỏi {currentQ + 1}/{questions.length}</span>
         <span className="text-xs font-bold text-indigo-600">Điểm: {score}</span>
       </div>
