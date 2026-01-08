@@ -12,7 +12,13 @@ import AdminView from './pages/AdminView';
 import LandingPage from './pages/LandingPage';
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(null); // Lưu thông tin user thật
+  // Mặc định mở lên là vào vai Học sinh luôn (ID=1)
+const [currentUser, setCurrentUser] = useState({ 
+  id: 1, 
+  full_name: 'Bạn Học Sinh', 
+  role: 'student', 
+  email: 'student@studyhub.vn' 
+}); // Lưu thông tin user thật
   const [showLoginModal, setShowLoginModal] = useState(false); // Quản lý bật/tắt Popup đăng nhập
   
   // Tự động coi là đã login nếu có currentUser
