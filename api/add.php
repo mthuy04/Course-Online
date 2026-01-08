@@ -1,14 +1,9 @@
 <?php
-require 'db.php';
-$d = json_decode(file_get_contents("php://input"), true);
-
-// Nhận thêm trường 'video'
-$stmt = $conn->prepare("INSERT INTO courses (title, price, image, video, level, teacher_name, description, duration) VALUES (?, ?, ?, ?, ?, ?, ?, '20 bài')");
-$stmt->bind_param("sisssss", $d['title'], $d['price'], $d['image'], $d['video'], $d['level'], $d['teacher_name'], $d['description']);
-
-if ($stmt->execute()) {
-    echo json_encode(["success" => true, "id" => $conn->insert_id]);
+// ... code insert ...
+if ($conn->query($sql) === TRUE) {
+    $last_id = $conn->insert_id; // Lấy ID vừa tạo
+    echo json_encode(["success" => true, "message" => "Tạo thành công", "id" => $last_id]);
 } else {
-    echo json_encode(["success" => false, "message" => $conn->error]);
+    echo json_encode(["success" => false, "message" => "Lỗi SQL: " . $conn->error]);
 }
 ?>
