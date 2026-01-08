@@ -4,7 +4,7 @@ import {
   CheckCircle, Activity, Megaphone, Settings, Search, Edit, Download, 
   ArrowDownLeft, ArrowUpRight, CheckCircle2, Plus, PlayCircle, Star
 } from 'lucide-react';
-import { formatMoney, API_URL } from '../utils/helpers'; // Đảm bảo đã import API_URL
+import { formatMoney, API_URL } from '../utils/helpers';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
 const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCourse, page }) => {
@@ -14,7 +14,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
   const [realUsers, setRealUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Fetch Users từ Database thật khi vào Tab Users
+  // 1. Fetch Users từ Database thật
   useEffect(() => {
     if (activeTab === 'users') {
       fetch(`${API_URL}/get_users.php`)
@@ -24,7 +24,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
     }
   }, [activeTab]);
 
-  // 2. Hàm Xóa User thật
+  // 2. Hàm Xóa User
   const handleDeleteUser = (id, name) => {
     if(!confirm(`Bạn chắc chắn muốn xóa user: ${name}?`)) return;
     
@@ -41,23 +41,18 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
     });
   };
 
-  // 3. Lọc người dùng theo từ khóa tìm kiếm
   const filteredUsers = realUsers.filter(u => 
       u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // --- DỮ LIỆU BIỂU ĐỒ (Dùng số liệu từ stats thật để tính toán tỷ lệ) ---
+  // --- DỮ LIỆU BIỂU ĐỒ (LOGIC MỚI: DÙNG DỮ LIỆU THẬT TỪ STATS) ---
+  // Nếu stats.chart_data có dữ liệu thì dùng, không thì dùng mảng rỗng để tránh lỗi
+  const chartData = stats.chart_data || [];
+  
   const platformRevenue = stats.revenue * 0.2; 
   const totalRevenue = stats.revenue;
-  // Giả lập biểu đồ tăng trưởng dựa trên doanh thu thật (Chia nhỏ ra cho đẹp)
-  const chartData = [ 
-      { name: 'Tuần 1', value: totalRevenue * 0.1 }, 
-      { name: 'Tuần 2', value: totalRevenue * 0.3 }, 
-      { name: 'Tuần 3', value: totalRevenue * 0.6 }, 
-      { name: 'Hiện tại', value: totalRevenue } 
-  ];
-  const pieData = [ { name: 'Sàn (20%)', value: 20 }, { name: 'GV (80%)', value: 80 } ];
+  const pieData = [ { name: 'Sàn (20%)', value: 20 }, { name: 'GV (80%)', value: 80 } ]; // Vẫn giữ tạm logic chia 80/20
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-10">
@@ -93,12 +88,21 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200">
-              <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp size={20}/> Tăng trưởng dòng tiền</h3>
+              <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp size={20}/> Tăng trưởng dòng tiền (Thực tế)</h3>
               <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData}>
-                      <defs><linearGradient id="colorR" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/><stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/></linearGradient></defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name" axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="value" stroke="#4f46e5" fill="url(#colorR)"/></AreaChart>
+                      <defs>
+                        <linearGradient id="colorThu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/><stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/></linearGradient>
+                        <linearGradient id="colorChi" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8}/><stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/></linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false}/>
+                      <Tooltip formatter={(value) => formatMoney(value)}/>
+                      {/* VẼ 2 ĐƯỜNG: THU và CHI dựa trên dữ liệu thật */}
+                      <Area type="monotone" dataKey="thu" stroke="#4f46e5" fill="url(#colorThu)" name="Tổng thu" />
+                      <Area type="monotone" dataKey="chi" stroke="#f43f5e" fill="url(#colorChi)" name="Chi phí" />
+                    </AreaChart>
                   </ResponsiveContainer>
               </div>
             </div>
@@ -133,7 +137,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
         </>
       )}
 
-      {/* FINANCE TAB */}
+      {/* FINANCE TAB - ĐÃ SỬA LOGIC HIỂN THỊ DỰA TRÊN TYPE */}
       {activeTab === 'finance' && (
          <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center"><div><h3 className="text-xl font-black text-slate-800">Quản Lý Dòng Tiền</h3><p className="text-sm text-slate-500 font-medium mt-1">Chi tiết các giao dịch thu/chi trên hệ thống</p></div><button className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition-all"><Download size={18}/> Xuất Excel</button></div>
@@ -143,7 +147,24 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
                 <tbody className="divide-y divide-slate-100">
                   {stats.transactions && stats.transactions.length > 0 ? (
                     stats.transactions.map((t, i) => (
-                      <tr key={i} className="hover:bg-slate-50/80 transition-colors group"><td className="p-6 font-mono text-slate-400 text-sm">#{t.id}</td><td className="p-6"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600">{t.full_name ? t.full_name.charAt(0) : 'U'}</div><span className="font-bold text-slate-700">{t.full_name || 'Khách vãng lai'}</span></div></td><td className="p-6">{i % 2 === 0 ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><ArrowDownLeft size={14}/> Thu tiền (IN)</span> : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200"><ArrowUpRight size={14}/> Chi trả (OUT)</span>}</td><td className="p-6 text-slate-500 font-medium text-sm">{t.created_at || 'Vừa xong'}</td><td className={`p-6 text-right font-black text-base ${i%2===0 ? 'text-emerald-600' : 'text-orange-600'}`}>{i%2===0 ? '+' : '-'}{formatMoney(t.total_amount)}</td><td className="p-6 text-center"><span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full"><CheckCircle2 size={12} className="text-green-500"/> Success</span></td></tr>
+                      <tr key={i} className="hover:bg-slate-50/80 transition-colors group">
+                        <td className="p-6 font-mono text-slate-400 text-sm">#{t.id}</td>
+                        <td className="p-6"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600">{t.user_name ? t.user_name.charAt(0) : 'U'}</div><span className="font-bold text-slate-700">{t.user_name || 'Khách vãng lai'}</span></div></td>
+                        
+                        {/* LOGIC MỚI: Check type từ API stats.php */}
+                        <td className="p-6">
+                            {t.type === 'expense' ? 
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><ArrowUpRight size={14}/> Chi phí (OUT)</span> : 
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><ArrowDownLeft size={14}/> Doanh thu (IN)</span>
+                            }
+                        </td>
+                        
+                        <td className="p-6 text-slate-500 font-medium text-sm">{t.created_at || 'Vừa xong'}</td>
+                        <td className={`p-6 text-right font-black text-base ${t.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {t.type === 'expense' ? '-' : '+'}{formatMoney(t.total_amount)}
+                        </td>
+                        <td className="p-6 text-center"><span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full"><CheckCircle2 size={12} className="text-green-500"/> Success</span></td>
+                      </tr>
                     ))
                   ) : (
                     <tr><td colSpan="6" className="p-10 text-center text-slate-400 font-medium"><div className="flex flex-col items-center gap-2"><Ban size={32} className="opacity-50"/><span>Chưa có dữ liệu giao dịch nào.</span></div></td></tr>
@@ -154,7 +175,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
          </div>
       )}
 
-      {/* USERS TAB - ĐÃ KẾT NỐI DB THẬT */}
+      {/* USERS TAB */}
       {activeTab === 'users' && (
         <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
            <div className="p-6 border-b border-slate-100 flex gap-4">
@@ -189,7 +210,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
                           <td className="p-6"><span className={`flex items-center gap-1.5 text-xs font-bold ${user.status === 'Active' ? 'text-emerald-600' : 'text-rose-600'}`}><div className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>{user.status || 'Active'}</span></td>
                           <td className="p-6 text-sm text-slate-500 font-medium">{user.joined}</td>
                           <td className="p-6 text-right flex justify-end gap-2">
-                             <button className="p-2 bg-slate-100 rounded-lg hover:text-indigo-600 transition-all"><Edit size={16}/></button>
+                             <button className="p-2 bg-slate-100 rounded-lg hover:text-indigo-600 transition-all" onClick={() => alert("Chức năng đang phát triển")}><Edit size={16}/></button>
                              <button onClick={() => handleDeleteUser(user.id, user.full_name)} className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={16}/></button>
                           </td>
                        </tr>
@@ -202,7 +223,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
         </div>
       )}
 
-      {/* MARKETING TAB - GIỮ NGUYÊN HOẶC UPDATE SAU */}
+      {/* MARKETING TAB - GIỮ NGUYÊN (VÌ LÀ TĨNH) */}
       {activeTab === 'marketing' && (
          <div className="grid grid-cols-2 gap-6">
             <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm"><h3 className="font-bold text-slate-800 mb-4">Chiến dịch đang chạy</h3><div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 mb-4"><div className="flex justify-between mb-2"><span className="font-bold text-indigo-700">Back to School</span><span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">Active</span></div><p className="text-sm text-indigo-600">Giảm 20% toàn bộ khóa học THPT</p></div><button className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800">+ Tạo chiến dịch mới</button></div>
