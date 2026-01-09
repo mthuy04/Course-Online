@@ -13,19 +13,53 @@ import AdminView from './pages/AdminView';
 import LandingPage from './pages/LandingPage';
 
 // --- QUIZ COMPONENT GIẢ LẬP (MỚI) ---
+// --- BỘ CÂU HỎI CHUẨN MÔN (DATA MỚI) ---
+const QUIZ_DATA = {
+  // ID 1: Toán 12
+  1: [
+      { q: "Hàm số y = x^3 - 3x^2 + 2 đồng biến trên khoảng nào?", a: ["(0; 2)", "(-∞; 0) và (2; +∞)", "(-∞; 2)", "(0; +∞)"], correct: 1 },
+      { q: "Số điểm cực trị của hàm số y = x^4 - 2x^2 + 1 là?", a: ["1", "2", "3", "0"], correct: 2 },
+      { q: "Giá trị lớn nhất của hàm số y = sin(x) + cos(x) là?", a: ["1", "2", "√2", "0"], correct: 2 },
+      { q: "Tiệm cận đứng của đồ thị hàm số y = (2x+1)/(x-1) là?", a: ["x = 1", "x = -1", "y = 2", "y = 1"], correct: 0 }
+  ],
+  // ID 2: Vật Lý 12
+  2: [
+      { q: "Trong đoạn mạch RLC nối tiếp, hiện tượng cộng hưởng xảy ra khi?", a: ["ZL > ZC", "ZL < ZC", "ZL = ZC", "R = 0"], correct: 2 },
+      { q: "Cường độ dòng điện hiệu dụng được tính bằng công thức nào?", a: ["I = I0", "I = I0/2", "I = I0/√2", "I = 2I0"], correct: 2 },
+      { q: "Máy biến áp là thiết bị dùng để?", a: ["Biến đổi điện áp xoay chiều", "Biến đổi dòng điện một chiều", "Tạo ra dòng điện", "Lưu trữ điện năng"], correct: 0 },
+      { q: "Tần số dòng điện xoay chiều mạng điện dân dụng Việt Nam là?", a: ["50 Hz", "60 Hz", "100 Hz", "220 Hz"], correct: 0 }
+  ],
+  // ID 3: Hóa Học 12
+  3: [
+      { q: "Este nào sau đây có mùi chuối chín?", a: ["Etyl fomat", "Isoamyl axetat", "Benzyl axetat", "Etyl butirat"], correct: 1 },
+      { q: "Chất béo là trieste của axit béo với?", a: ["Etanol", "Metanol", "Glixerol", "Etylen glicol"], correct: 2 },
+      { q: "Xà phòng hóa chất béo luôn thu được?", a: ["Ancol etylic", "Glixerol", "Axit axetic", "Andehit"], correct: 1 },
+      { q: "Công thức tổng quát của este no, đơn chức, mạch hở là?", a: ["CnH2nO2 (n>=2)", "CnH2n+2O", "CnH2n-2O2", "CnH2nO"], correct: 0 }
+  ],
+  // ID 4: TOEIC
+  4: [
+      { q: "Mr. Smith ______ to the meeting yesterday.", a: ["go", "went", "gone", "goes"], correct: 1 },
+      { q: "Please ______ the document attached below.", a: ["find", "look", "watch", "see"], correct: 0 },
+      { q: "The sales report needs to be finished ______ Friday.", a: ["on", "at", "by", "in"], correct: 2 },
+      { q: "I look forward to ______ from you soon.", a: ["hear", "heard", "hearing", "hears"], correct: 2 }
+  ],
+  // ID 5: Toán 9
+  5: [
+      { q: "Căn bậc hai số học của 9 là?", a: ["3", "-3", "±3", "81"], correct: 0 },
+      { q: "Đồ thị hàm số y = ax^2 (a ≠ 0) có dạng là?", a: ["Đường thẳng", "Parabol", "Hyperbol", "Đường tròn"], correct: 1 },
+      { q: "Phương trình x^2 - 4 = 0 có nghiệm là?", a: ["x = 2", "x = -2", "x = ±2", "Vô nghiệm"], correct: 2 },
+      { q: "Tổng hai nghiệm của phương trình x^2 - 5x + 6 = 0 là?", a: ["5", "-5", "6", "-6"], correct: 0 }
+  ]
+};
 // --- QUIZ COMPONENT GIẢ LẬP (ĐÃ FIX LỖI TỐI MÀU) ---
-const QuizSimulator = ({ title, onFinish }) => {
-  const [step, setStep] = useState('start'); // start | playing | result
+// --- COMPONENT QUIZ (ĐÃ FIX LỖI TỐI + NHẬN COURSE ID) ---
+const QuizSimulator = ({ courseId, onFinish }) => {
+  const [step, setStep] = useState('start');
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
   
-  const questions = [
-    { q: "Câu 1: Đâu là một ngôn ngữ lập trình phổ biến?", a: ["HTML", "Python", "Photoshop", "Excel"], correct: 1 },
-    { q: "Câu 2: HTML là viết tắt của từ gì?", a: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyperlink Text Mode", "Home Tool Markup"], correct: 0 },
-    { q: "Câu 3: ReactJS được phát triển bởi công ty nào?", a: ["Google", "Microsoft", "Facebook (Meta)", "Apple"], correct: 2 },
-    { q: "Câu 4: Để định dạng trang web, ta dùng?", a: ["CSS", "SQL", "Python", "PHP"], correct: 0 },
-    { q: "Câu 5: Database dùng để làm gì?", a: ["Lưu trữ dữ liệu", "Vẽ đồ họa", "Soạn thảo văn bản", "Chỉnh sửa video"], correct: 0 },
-  ];
+  // Lấy câu hỏi theo ID khóa học, mặc định là Toán (ID 1) nếu không tìm thấy
+  const questions = QUIZ_DATA[courseId] || QUIZ_DATA[1]; 
 
   const handleAnswer = (idx) => {
     if (idx === questions[currentQ].correct) setScore(score + 1);
@@ -41,8 +75,8 @@ const QuizSimulator = ({ title, onFinish }) => {
   if (step === 'start') return (
     <div className="flex flex-col items-center justify-center h-full bg-white p-10 text-center animate-fade-in-up">
       <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-6 shadow-sm"><HelpCircle size={40} /></div>
-      <h3 className="text-2xl font-black text-slate-800 mb-2">{title}</h3>
-      <p className="text-slate-500 mb-8 max-w-md">Bài kiểm tra gồm {questions.length} câu hỏi. Hãy chọn đáp án đúng nhất. Bạn cần đạt tối thiểu 80% để qua môn.</p>
+      <h3 className="text-2xl font-black text-slate-800 mb-2">Bài kiểm tra kiến thức</h3>
+      <p className="text-slate-500 mb-8 max-w-md">Bài thi gồm {questions.length} câu hỏi trắc nghiệm. Hãy chọn đáp án chính xác nhất.</p>
       <button onClick={() => setStep('playing')} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg hover:scale-105 transition-all">Bắt đầu làm bài</button>
     </div>
   );
@@ -52,14 +86,14 @@ const QuizSimulator = ({ title, onFinish }) => {
       <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-500 mb-6 shadow-md"><Trophy size={48} /></div>
       <h3 className="text-3xl font-black text-slate-800 mb-2">Kết quả: {score}/{questions.length}</h3>
       <p className="text-slate-500 mb-8 font-medium">
-        {score >= 4 ? "Xuất sắc! Bạn đã nắm vững kiến thức." : "Hãy ôn tập lại kiến thức nhé!"}
+        {score >= questions.length - 1 ? "Xuất sắc! Bạn đã nắm vững kiến thức." : "Hãy ôn tập lại kiến thức nhé!"}
       </p>
       <button onClick={() => { setStep('start'); setScore(0); setCurrentQ(0); }} className="px-6 py-2 border-2 border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50">Làm lại</button>
     </div>
   );
 
   return (
-    // ĐÃ THÊM bg-white VÀO ĐÂY ĐỂ KHÔNG BỊ TỐI
+    // QUAN TRỌNG: Thêm bg-white ở đây để không bị tối đen
     <div className="w-full h-full bg-white overflow-y-auto custom-scrollbar">
         <div className="max-w-2xl mx-auto p-8 min-h-full flex flex-col justify-center animate-fade-in">
           <div className="flex justify-between items-center mb-6">
@@ -316,6 +350,7 @@ function App() {
       )}
 
       {/* --- MODAL HỌC TẬP (MÀN HÌNH HỌC) --- */}
+      {/* --- MODAL HỌC TẬP (MÀN HÌNH HỌC) --- */}
       {activeModal === 'learning' && selectedCourse && (
         <Modal title={`Đang học: ${selectedCourse.title}`} onClose={() => setActiveModal(null)} maxWidth="max-w-7xl">
           <div className="flex flex-col lg:flex-row gap-6 h-[80vh]">
@@ -323,7 +358,8 @@ function App() {
               <div className="flex-1 bg-black rounded-xl overflow-hidden shadow-lg relative group border border-slate-800">
                 {currentLesson ? (
                   currentLesson.type === 'quiz' ? (
-                    <QuizSimulator title={currentLesson.title} onFinish={() => handleNextLesson()} />
+                    // --- SỬA Ở ĐÂY: Truyền selectedCourse.id vào QuizSimulator ---
+                    <QuizSimulator courseId={selectedCourse.id} onFinish={() => handleNextLesson()} />
                   ) : (
                     <iframe className="w-full h-full" src={getEmbedLink(currentLesson.video_url || currentLesson.video)} title="Lesson Video" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                   )
