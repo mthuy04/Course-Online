@@ -305,68 +305,81 @@ const StudentView = ({ currentUser, page, setPage, courses, cart, myCourses, han
 
 
 // 4. CART
+  // 4. CART (ĐÃ SỬA: PHÂN TÍCH TÀI CHÍNH TRỌN ĐỜI)
   if (page === 'cart') {
-    const totalAmount = cart.reduce((t, c) => t + parseInt(c.price), 0);
-    const totalItems = cart.length;
-    const avgPrice = totalItems > 0 ? totalAmount / totalItems : 0;
+    // 1. Tính tổng tiền ĐÃ CHI TIÊU (Dựa trên myCourses - Khóa đã mua)
+    const totalSpent = myCourses.reduce((t, c) => t + (parseInt(c.price) || 0), 0);
+    const totalOwnedCourses = myCourses.length;
+
+    // 2. Tính tiền ĐANG TRONG GIỎ (Dựa trên cart - Sắp mua)
+    const cartTotal = cart.reduce((t, c) => t + (parseInt(c.price) || 0), 0);
     
-    // Giả lập ngân sách
-    const budget = 5000000; 
-    const percentUsed = Math.min((totalAmount / budget) * 100, 100);
+    // 3. Giả lập ngân sách năm (Ví dụ: 10 triệu)
+    const budget = 10000000;
+    const percentUsed = Math.min(((totalSpent + cartTotal) / budget) * 100, 100);
 
     return (
       <div className="max-w-7xl mx-auto animate-fade-in-up py-10 space-y-8">
         
-        {/* DASHBOARD TÀI CHÍNH */}
+        {/* --- DASHBOARD TÀI CHÍNH (LỊCH SỬ CHI TIÊU) --- */}
+        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <DollarSign className="text-indigo-600"/> Báo cáo tài chính cá nhân
+        </h2>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden group">
-                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                    <BookOpen size={32} />
-                </div>
-                <div>
-                    <p className="text-slate-500 font-bold text-xs uppercase tracking-wider">Số lượng khóa</p>
-                    <h3 className="text-3xl font-black text-slate-800">{totalItems} <span className="text-lg text-slate-400 font-medium">khóa</span></h3>
-                </div>
-                <div className="absolute -right-6 -bottom-6 text-blue-50 opacity-50"><BookOpen size={100}/></div>
-            </div>
-
-            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 rounded-[24px] shadow-lg text-white flex items-center gap-5 relative overflow-hidden">
+            {/* CARD 1: TỔNG TIỀN ĐÃ ĐẦU TƯ (LỊCH SỬ) */}
+            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 rounded-[24px] shadow-lg text-white flex items-center gap-5 relative overflow-hidden">
                 <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white">
                     <DollarSign size={32} />
                 </div>
                 <div className="relative z-10">
-                    <p className="text-indigo-100 font-bold text-xs uppercase tracking-wider">Tổng đầu tư tri thức</p>
-                    <h3 className="text-3xl font-black">{formatMoney(totalAmount)}</h3>
+                    <p className="text-indigo-100 font-bold text-xs uppercase tracking-wider">Tổng tiền đã chi tiêu</p>
+                    {/* Hiển thị totalSpent thay vì cartTotal */}
+                    <h3 className="text-3xl font-black">{formatMoney(totalSpent)}</h3>
                 </div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
             </div>
 
+            {/* CARD 2: SỐ KHÓA HỌC ĐANG SỞ HỮU */}
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden group">
                 <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                    <BookOpen size={32} />
+                </div>
+                <div>
+                    <p className="text-slate-500 font-bold text-xs uppercase tracking-wider">Tài sản khóa học</p>
+                    {/* Hiển thị số lượng khóa đã mua */}
+                    <h3 className="text-3xl font-black text-slate-800">{totalOwnedCourses} <span className="text-lg text-slate-400 font-medium">khóa</span></h3>
+                </div>
+            </div>
+
+            {/* CARD 3: NGÂN SÁCH CÒN LẠI */}
+            <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 relative overflow-hidden group">
+                <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
                     <TrendingUp size={32} />
                 </div>
                 <div>
-                    <p className="text-slate-500 font-bold text-xs uppercase tracking-wider">Trung bình / khóa</p>
-                    <h3 className="text-2xl font-black text-slate-800">{formatMoney(avgPrice)}</h3>
+                    <p className="text-slate-500 font-bold text-xs uppercase tracking-wider">Ngân sách còn lại</p>
+                    <h3 className="text-2xl font-black text-slate-800">{formatMoney(budget - totalSpent)}</h3>
                 </div>
-                <div className="absolute -right-6 -bottom-6 text-emerald-50 opacity-50"><TrendingUp size={100}/></div>
             </div>
         </div>
 
-        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-            <ShoppingBag className="text-indigo-600"/> Chi tiết giỏ hàng
+        {/* --- CHI TIẾT GIỎ HÀNG (HIỆN TẠI) --- */}
+        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2 pt-6 border-t border-slate-200">
+            <ShoppingBag className="text-indigo-600"/> Giỏ hàng hiện tại ({cart.length})
         </h2>
 
         <div className="flex flex-col lg:flex-row gap-8">
+            {/* Cột trái: Danh sách item trong giỏ */}
             <div className="w-full lg:w-3/4 space-y-4">
                 {cart.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200">
                         <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                             <ShoppingBag size={40}/>
                         </div>
-                        <p className="text-slate-500 font-bold text-lg">Giỏ hàng đang trống trơn.</p>
-                        <p className="text-slate-400 text-sm mb-6">Hãy đầu tư cho bản thân ngay hôm nay!</p>
-                        <button onClick={()=>setPage('home')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">Khám phá khóa học</button>
+                        <p className="text-slate-500 font-bold text-lg">Giỏ hàng đang trống.</p>
+                        <p className="text-slate-400 text-sm mb-6">Bạn đã đầu tư {formatMoney(totalSpent)} cho tri thức rồi đấy!</p>
+                        <button onClick={()=>setPage('home')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">Tìm thêm khóa học</button>
                     </div>
                 ) : (
                     cart.map((c, i) => (
@@ -390,6 +403,7 @@ const StudentView = ({ currentUser, page, setPage, courses, cart, myCourses, han
                 )}
             </div>
 
+            {/* Cột phải: Thanh toán (Chỉ hiện khi có hàng) */}
             {cart.length > 0 && (
               <div className="w-full lg:w-1/4 h-fit">
                   <div className="bg-white p-6 rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 sticky top-6">
@@ -397,30 +411,25 @@ const StudentView = ({ currentUser, page, setPage, courses, cart, myCourses, han
                       
                       <div className="mb-6">
                           <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                              <span>Hạn mức đầu tư tháng</span>
+                              <span>Sử dụng ngân sách</span>
                               <span>{Math.round(percentUsed)}%</span>
                           </div>
                           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                               <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-1000" style={{width: `${percentUsed}%`}}></div>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-1 italic text-right">Giả lập ngân sách 5.000.000đ</p>
                       </div>
 
                       <div className="space-y-3 mb-8 border-t border-dashed border-slate-200 pt-4">
-                        <div className="flex justify-between text-slate-600 font-medium text-sm"><span>Tạm tính</span><span>{formatMoney(totalAmount)}</span></div>
+                        <div className="flex justify-between text-slate-600 font-medium text-sm"><span>Tạm tính</span><span>{formatMoney(cartTotal)}</span></div>
                         <div className="flex justify-between text-emerald-600 font-medium text-sm"><span>Khuyến mãi</span><span>-0 đ</span></div>
-                        <div className="border-t border-slate-100 pt-3 flex justify-between items-center"><span className="text-slate-900 font-black text-lg">Tổng cộng</span><span className="text-2xl font-black text-indigo-600">{formatMoney(totalAmount)}</span></div>
+                        <div className="border-t border-slate-100 pt-3 flex justify-between items-center"><span className="text-slate-900 font-black text-lg">Thanh toán</span><span className="text-2xl font-black text-indigo-600">{formatMoney(cartTotal)}</span></div>
                       </div>
                       
                       <button onClick={handlePayment} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-lg hover:bg-indigo-600 hover:scale-[1.02] transition-all flex justify-center gap-2 items-center">
-                          Thanh toán <CheckCircle2 size={20}/>
+                          Thanh toán ngay <CheckCircle2 size={20}/>
                       </button>
-                      <div className="mt-4 flex justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-                           <div className="w-8 h-5 bg-blue-600 rounded"></div>
-                           <div className="w-8 h-5 bg-yellow-500 rounded"></div>
-                           <div className="w-8 h-5 bg-slate-800 rounded"></div>
-                      </div>
-                      <p className="text-xs text-slate-400 text-center mt-2 font-medium flex justify-center gap-1"><ShieldCheck size={14}/> Bảo mật thanh toán SSL</p>
+                      
+                      <p className="text-xs text-slate-400 text-center mt-4 font-medium flex justify-center gap-1"><ShieldCheck size={14}/> Bảo mật thanh toán SSL</p>
                   </div>
               </div>
             )}
