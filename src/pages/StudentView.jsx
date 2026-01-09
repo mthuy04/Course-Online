@@ -433,7 +433,69 @@ const StudentView = ({ currentUser, page, setPage, courses, cart, myCourses, han
   if (page === 'community') return (<div className="max-w-4xl mx-auto animate-fade-in-up pb-10"><div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-8 rounded-[32px] text-white shadow-xl mb-8"><h2 className="text-3xl font-black mb-2">Cộng đồng Học sinh 🌏</h2><p className="opacity-90">Hỏi bài, chia sẻ kinh nghiệm học tập.</p></div><div className="space-y-6">{[1,2,3].map(i => (<div key={i} className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm"><div className="flex gap-4 items-start"><img src={`https://i.pravatar.cc/150?img=${i+10}`} className="w-12 h-12 rounded-full border-2 border-white shadow-sm"/><div className="flex-1"><div className="flex justify-between items-start mb-2"><div><h4 className="font-bold text-slate-900">Học sinh {i}</h4><p className="text-xs text-slate-500">2 giờ trước</p></div></div><p className="text-slate-700 mb-4 leading-relaxed">Bài toán này khó quá, có ai giúp mình giải câu 5 đề thi thử không ạ?</p><div className="flex gap-4 border-t border-slate-50 pt-4"><button className="flex items-center gap-2 text-slate-500 hover:text-rose-500 font-bold text-sm"><Heart size={18}/> 12</button><button className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold text-sm"><MessageSquare size={18}/> 3 bình luận</button></div></div></div></div>))}</div></div>);
 
   // 6. CERTIFICATES
-  if (page === 'cert') return (<div className="animate-fade-in-up pb-10"><div className="mb-8"><h2 className="text-3xl font-black text-slate-800 mb-2">Chứng chỉ của tôi 🏅</h2><p className="text-slate-600 font-medium italic">"Tri thức là sức mạnh. Chúc mừng bạn đã hoàn thành chặng đường này!" 🚀</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-6">{[1].map(i => (<div key={i} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-lg flex gap-6 items-center"><div className="w-20 h-20 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center"><Award size={40}/></div><div className="flex-1"><h4 className="text-xl font-black text-slate-900 mb-1">Hoàn thành khóa học Toán 12</h4><p className="text-sm text-slate-500 mb-4">Cấp ngày: 20/12/2025</p><button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800"><Download size={16}/> Tải PDF</button></div></div>))}</div></div>);
+// 6. CERTIFICATES (ĐÃ SỬA: HIỆN CHỨNG CHỈ THẬT)
+if (page === 'cert') {
+  // Lọc ra các khóa đã học xong
+  const completedCourses = myCourses.filter(c => c.isCompleted);
+
+  return (
+    <div className="animate-fade-in-up pb-10">
+      <div className="mb-8">
+        <h2 className="text-3xl font-black text-slate-800 mb-2">Chứng chỉ của tôi 🏅</h2>
+        <p className="text-slate-600 font-medium italic">"Tri thức là sức mạnh. Chúc mừng bạn đã hoàn thành chặng đường này!" 🚀</p>
+      </div>
+
+      {completedCourses.length === 0 ? (
+        // GIAO DIỆN KHI CHƯA CÓ CHỨNG CHỈ
+        <div className="text-center py-20 bg-white rounded-[32px] border-2 border-dashed border-slate-200">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+            <Award size={40} />
+          </div>
+          <p className="text-slate-500 font-bold text-lg">Bạn chưa hoàn thành khóa học nào.</p>
+          <button onClick={() => setPage('my-learning')} className="mt-4 text-indigo-600 font-bold hover:underline">
+            Vào học ngay để nhận bằng
+          </button>
+        </div>
+      ) : (
+        // GIAO DIỆN DANH SÁCH CHỨNG CHỈ THẬT
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {completedCourses.map((course, index) => (
+            <div key={index} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-lg flex gap-6 items-center relative overflow-hidden group">
+              {/* Dải băng trang trí */}
+              <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-[10px] font-black px-4 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm z-10">
+                Verified
+              </div>
+              
+              <div className="w-20 h-20 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center shrink-0">
+                <Award size={40} />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xl font-black text-slate-900 mb-1 truncate">{course.title}</h4>
+                <div className="space-y-1">
+                  <p className="text-sm text-slate-500 font-medium">Học viên: <span className="text-slate-800 font-bold">{currentUser?.full_name || 'Bạn Học Sinh'}</span></p>
+                  <p className="text-sm text-slate-500">Cấp ngày: <span className="text-indigo-600 font-bold">{course.completedDate || new Date().toLocaleDateString('vi-VN')}</span></p>
+                </div>
+                
+                <div className="mt-4 flex gap-2">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all">
+                    <Download size={16} /> Tải PDF
+                  </button>
+                  <button className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all">
+                    <Share2 size={16} /> Khoe ngay
+                  </button>
+                </div>
+              </div>
+              
+              {/* Hiệu ứng nền */}
+              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-yellow-400/10 rounded-full blur-3xl group-hover:bg-yellow-400/20 transition-all"></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
   return null;
 };

@@ -146,7 +146,15 @@ function App() {
   });
   useEffect(() => { localStorage.setItem('shopping_cart', JSON.stringify(cart)); }, [cart]);
 
-  const [myCourses, setMyCourses] = useState([]);
+  const [myCourses, setMyCourses] = useState(() => {
+    const savedCourses = localStorage.getItem('my_courses');
+    return savedCourses ? JSON.parse(savedCourses) : [];
+  });
+
+  // Tự động lưu 'Góc học tập' mỗi khi có thay đổi
+  useEffect(() => {
+    localStorage.setItem('my_courses', JSON.stringify(myCourses));
+  }, [myCourses]);
   const [stats, setStats] = useState({ revenue: 0, users: 0, courses: 0, transactions: [] });
 
   const [activeModal, setActiveModal] = useState(null);
@@ -185,15 +193,29 @@ function App() {
   };
 
   // --- HANDLERS LOGIC ---
-  const handleNextLesson = () => {
-    if (!currentLesson || !lessonList.length) return;
-    const idx = lessonList.findIndex(l => l.id === currentLesson.id);
-    if (idx !== -1 && idx < lessonList.length - 1) {
-        setCurrentLesson(lessonList[idx + 1]);
-    } else {
-        alert("Chúc mừng! Bạn đã hoàn thành khóa học 🎉");
-    }
-  };
+// --- SỬA HÀM NÀY ĐỂ TỰ ĐỘNG CẤP CHỨNG CHỈ KHI HỌC XONG ---
+const handleNextLesson = () => {
+  if (!currentLesson || !lessonList.length) return;
+  const idx = lessonList.findIndex(l => l.id === currentLesson.id);
+  
+  // Nếu chưa phải bài cuối -> Chuyển bài tiếp
+  if (idx !== -1 && idx < lessonList.length - 1) {
+      setCurrentLesson(lessonList[idx + 1]);
+  } else {
+      // Nếu là bài cuối cùng -> Chúc mừng & Cấp chứng chỉ
+      alert("🏆 CHÚC MỪNG! BẠN ĐÃ HOÀN THÀNH KHÓA HỌC NÀY!\nChứng chỉ đã được thêm vào hồ sơ của bạn.");
+      
+      // Cập nhật trạng thái 'Hoàn thành' cho khóa học trong myCourses
+      const updatedMyCourses = myCourses.map(c => 
+          c.id === selectedCourse.id 
+          ? { ...c, isCompleted: true, completedDate: new Date().toLocaleDateString('vi-VN') } 
+          : c
+      );
+      setMyCourses(updatedMyCourses); // Lưu lại vào state (nó sẽ tự lưu vào localStorage nhờ useEffect trên)
+      setActiveModal(null); // Đóng màn hình học
+      setPage('cert'); // Chuyển hướng sang trang Chứng chỉ ngay
+  }
+};
 
   const handlePrevLesson = () => {
     if (!currentLesson || !lessonList.length) return;
