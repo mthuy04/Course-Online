@@ -14,6 +14,7 @@ import LandingPage from './pages/LandingPage';
 
 // --- QUIZ COMPONENT GIẢ LẬP (MỚI) ---
 // --- BỘ CÂU HỎI CHUẨN MÔN (DATA MỚI) ---
+// --- BỘ CÂU HỎI CHUẨN MÔN (DATA MỚI THEO YÊU CẦU) ---
 const QUIZ_DATA = {
   // ID 1: Toán 12
   1: [
@@ -26,29 +27,37 @@ const QUIZ_DATA = {
   2: [
       { q: "Trong đoạn mạch RLC nối tiếp, hiện tượng cộng hưởng xảy ra khi?", a: ["ZL > ZC", "ZL < ZC", "ZL = ZC", "R = 0"], correct: 2 },
       { q: "Cường độ dòng điện hiệu dụng được tính bằng công thức nào?", a: ["I = I0", "I = I0/2", "I = I0/√2", "I = 2I0"], correct: 2 },
-      { q: "Máy biến áp là thiết bị dùng để?", a: ["Biến đổi điện áp xoay chiều", "Biến đổi dòng điện một chiều", "Tạo ra dòng điện", "Lưu trữ điện năng"], correct: 0 },
-      { q: "Tần số dòng điện xoay chiều mạng điện dân dụng Việt Nam là?", a: ["50 Hz", "60 Hz", "100 Hz", "220 Hz"], correct: 0 }
+      { q: "Máy biến áp là thiết bị dùng để?", a: ["Biến đổi điện áp xoay chiều", "Biến đổi dòng điện một chiều", "Tạo ra dòng điện", "Lưu trữ điện năng"], correct: 0 }
   ],
   // ID 3: Hóa Học 12
   3: [
       { q: "Este nào sau đây có mùi chuối chín?", a: ["Etyl fomat", "Isoamyl axetat", "Benzyl axetat", "Etyl butirat"], correct: 1 },
       { q: "Chất béo là trieste của axit béo với?", a: ["Etanol", "Metanol", "Glixerol", "Etylen glicol"], correct: 2 },
-      { q: "Xà phòng hóa chất béo luôn thu được?", a: ["Ancol etylic", "Glixerol", "Axit axetic", "Andehit"], correct: 1 },
-      { q: "Công thức tổng quát của este no, đơn chức, mạch hở là?", a: ["CnH2nO2 (n>=2)", "CnH2n+2O", "CnH2n-2O2", "CnH2nO"], correct: 0 }
+      { q: "Phản ứng thủy phân chất béo trong môi trường kiềm gọi là?", a: ["Phản ứng este hóa", "Phản ứng xà phòng hóa", "Phản ứng tráng bạc", "Phản ứng cộng H2"], correct: 1 }
   ],
   // ID 4: TOEIC
   4: [
+      { q: "The meeting will be held ______ Monday morning.", a: ["in", "at", "on", "by"], correct: 2 },
       { q: "Mr. Smith ______ to the meeting yesterday.", a: ["go", "went", "gone", "goes"], correct: 1 },
-      { q: "Please ______ the document attached below.", a: ["find", "look", "watch", "see"], correct: 0 },
-      { q: "The sales report needs to be finished ______ Friday.", a: ["on", "at", "by", "in"], correct: 2 },
-      { q: "I look forward to ______ from you soon.", a: ["hear", "heard", "hearing", "hears"], correct: 2 }
+      { q: "Please ______ the document attached below.", a: ["find", "look", "watch", "see"], correct: 0 }
   ],
   // ID 5: Toán 9
   5: [
       { q: "Căn bậc hai số học của 9 là?", a: ["3", "-3", "±3", "81"], correct: 0 },
       { q: "Đồ thị hàm số y = ax^2 (a ≠ 0) có dạng là?", a: ["Đường thẳng", "Parabol", "Hyperbol", "Đường tròn"], correct: 1 },
-      { q: "Phương trình x^2 - 4 = 0 có nghiệm là?", a: ["x = 2", "x = -2", "x = ±2", "Vô nghiệm"], correct: 2 },
-      { q: "Tổng hai nghiệm của phương trình x^2 - 5x + 6 = 0 là?", a: ["5", "-5", "6", "-6"], correct: 0 }
+      { q: "Hệ phương trình bậc nhất hai ẩn có thể giải bằng phương pháp nào?", a: ["Thế", "Cộng đại số", "Đồ thị", "Cả 3 cách trên"], correct: 3 }
+  ],
+  // ID 6: Lập trình Scratch
+  6: [
+      { q: "Trong Scratch, khối lệnh nào dùng để di chuyển nhân vật?", a: ["Move 10 steps", "Say Hello", "Wait 1 sec", "Turn 15 degrees"], correct: 0 },
+      { q: "Để bắt đầu chương trình, ta thường dùng khối lệnh nào?", a: ["When green flag clicked", "When space key pressed", "Forever", "If...then"], correct: 0 },
+      { q: "Nhân vật mặc định trong Scratch là con gì?", a: ["Chó", "Mèo", "Chuột", "Chim"], correct: 1 }
+  ],
+  // ID 7: Tiếng Anh 9
+  7: [
+      { q: "We wish we ______ a bigger house.", a: ["have", "had", "will have", "has"], correct: 1 },
+      { q: "She asked me where I ______ from.", a: ["come", "came", "coming", "comes"], correct: 1 },
+      { q: "If I were you, I ______ learn English harder.", a: ["will", "would", "can", "shall"], correct: 1 }
   ]
 };
 // --- QUIZ COMPONENT GIẢ LẬP (ĐÃ FIX LỖI TỐI MÀU) ---
