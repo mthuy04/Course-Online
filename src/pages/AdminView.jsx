@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   BarChart3, Users, BookOpen, DollarSign, TrendingUp, Trash2, Ban, 
   CheckCircle, Activity, Megaphone, Settings, Search, Edit, Download, 
-  ArrowDownLeft, ArrowUpRight, CheckCircle2, Plus, PlayCircle, Star
+  ArrowDownLeft, ArrowUpRight, CheckCircle2, Plus, PlayCircle, Star, ShoppingCart
 } from 'lucide-react';
 import { formatMoney, API_URL } from '../utils/helpers';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
@@ -10,11 +10,11 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid, Pi
 const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCourse, page }) => {
   const activeTab = page === 'home' ? 'dashboard' : page; 
   
-  // STATE CHO NGƯỜI DÙNG
+  // --- STATE QUẢN LÝ USER ---
   const [realUsers, setRealUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Fetch Users từ Database thật
+  // 1. Fetch Users từ Database thật khi vào tab Users
   useEffect(() => {
     if (activeTab === 'users') {
       fetch(`${API_URL}/get_users.php`)
@@ -30,6 +30,7 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
     
     fetch(`${API_URL}/delete_user.php`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
     })
     .then(res => res.json())
@@ -42,28 +43,26 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
   };
 
   const filteredUsers = realUsers.filter(u => 
-      u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+      (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
-  // --- DỮ LIỆU BIỂU ĐỒ (LOGIC MỚI: DÙNG DỮ LIỆU THẬT TỪ STATS) ---
-  // Nếu stats.chart_data có dữ liệu thì dùng, không thì dùng mảng rỗng để tránh lỗi
-  const chartData = stats.chart_data || [];
-  
-  const platformRevenue = stats.revenue * 0.2; 
-  const totalRevenue = stats.revenue;
-  const pieData = [ { name: 'Sàn (20%)', value: 20 }, { name: 'GV (80%)', value: 80 } ]; // Vẫn giữ tạm logic chia 80/20
+  // --- DỮ LIỆU BIỂU ĐỒ (Dùng dữ liệu thật từ stats hoặc fallback mảng rỗng) ---
+  const chartData = stats.chart_data || []; 
+  const totalRevenue = stats.revenue || 0;
+  const platformRevenue = totalRevenue * 0.2; // Giả sử sàn ăn 20%
+  const pieData = [ { name: 'Sàn (20%)', value: 20 }, { name: 'GV (80%)', value: 80 } ];
 
   return (
-    <div className="space-y-8 animate-fade-in-up pb-10">
-      {/* HEADER */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+    <div className="space-y-8 animate-fade-in-up pb-10 h-full flex flex-col">
+      {/* HEADER CHUNG */}
+      <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-200 shrink-0">
         <div>
             <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded">CEO Workspace</span>
-            <h2 className="text-4xl font-black text-slate-900 mt-2">
+            <h2 className="text-3xl font-black text-slate-900 mt-2">
                 {activeTab === 'dashboard' ? 'Tổng Quan Hệ Thống' : 
                  activeTab === 'finance' ? 'Quản Lý Tài Chính' : 
-                 activeTab === 'users' ? 'Quản Lý Người Dùng' : 'Marketing & Cấu Hình'}
+                 activeTab === 'users' ? 'Quản Lý Người Dùng' : 'Cấu Hình & Marketing'}
             </h2>
         </div>
         {activeTab === 'dashboard' && (
@@ -73,19 +72,21 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
         )}
       </div>
 
-      {/* DASHBOARD TAB */}
+      {/* --- DASHBOARD TAB --- */}
       {activeTab === 'dashboard' && (
-        <>
+        <div className="space-y-8">
+          {/* 4 Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="p-6 rounded-[24px] bg-indigo-600 text-white shadow-xl shadow-indigo-200">
               <div className="flex justify-between mb-4"><DollarSign className="opacity-80"/><span className="bg-white/20 px-2 py-1 rounded text-xs font-bold">+24%</span></div>
-              <h3 className="text-3xl font-black">{formatMoney(totalRevenue || 0)}</h3><p className="text-indigo-200 text-sm font-medium">Tổng GMV</p>
+              <h3 className="text-3xl font-black">{formatMoney(totalRevenue)}</h3><p className="text-indigo-200 text-sm font-medium">Tổng GMV</p>
             </div>
-            <div className="p-6 rounded-[24px] bg-white border border-slate-200 shadow-sm"><div className="flex justify-between mb-4 text-emerald-600"><Activity/><span className="bg-emerald-50 px-2 py-1 rounded text-xs font-bold">+12%</span></div><h3 className="text-3xl font-black text-slate-800">{formatMoney(platformRevenue || 0)}</h3><p className="text-slate-500 text-sm font-medium">Doanh thu Sàn</p></div>
+            <div className="p-6 rounded-[24px] bg-white border border-slate-200 shadow-sm"><div className="flex justify-between mb-4 text-emerald-600"><Activity/><span className="bg-emerald-50 px-2 py-1 rounded text-xs font-bold">+12%</span></div><h3 className="text-3xl font-black text-slate-800">{formatMoney(platformRevenue)}</h3><p className="text-slate-500 text-sm font-medium">Doanh thu Sàn</p></div>
             <div className="p-6 rounded-[24px] bg-white border border-slate-200 shadow-sm"><div className="flex justify-between mb-4 text-blue-600"><Users/><span className="bg-blue-50 px-2 py-1 rounded text-xs font-bold">Active</span></div><h3 className="text-3xl font-black text-slate-800">{stats.users || 0}</h3><p className="text-slate-500 text-sm font-medium">Thành viên</p></div>
             <div className="p-6 rounded-[24px] bg-white border border-slate-200 shadow-sm"><div className="flex justify-between mb-4 text-orange-600"><BookOpen/><span className="bg-orange-50 px-2 py-1 rounded text-xs font-bold">New</span></div><h3 className="text-3xl font-black text-slate-800">{courses.length || 0}</h3><p className="text-slate-500 text-sm font-medium">Khóa học hiện có</p></div>
           </div>
           
+          {/* Biểu đồ */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-slate-200">
               <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp size={20}/> Tăng trưởng dòng tiền (Thực tế)</h3>
@@ -94,25 +95,23 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
                     <AreaChart data={chartData}>
                       <defs>
                         <linearGradient id="colorThu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/><stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/></linearGradient>
-                        <linearGradient id="colorChi" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f43f5e" stopOpacity={0.8}/><stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/></linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false}/>
                       <XAxis dataKey="name" axisLine={false} tickLine={false}/>
-                      <Tooltip formatter={(value) => formatMoney(value)}/>
-                      {/* VẼ 2 ĐƯỜNG: THU và CHI dựa trên dữ liệu thật */}
-                      <Area type="monotone" dataKey="thu" stroke="#4f46e5" fill="url(#colorThu)" name="Tổng thu" />
-                      <Area type="monotone" dataKey="chi" stroke="#f43f5e" fill="url(#colorChi)" name="Chi phí" />
+                      <Tooltip formatter={(value) => formatMoney(value)} contentStyle={{borderRadius:'12px', border:'none', boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}/>
+                      <Area type="monotone" dataKey="thu" stroke="#4f46e5" fill="url(#colorThu)" strokeWidth={3} name="Doanh thu" />
                     </AreaChart>
                   </ResponsiveContainer>
               </div>
             </div>
-            <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200">
-              <h3 className="font-bold text-slate-800 mb-6">Cơ cấu doanh thu</h3>
-              <div className="h-64"><ResponsiveContainer><PieChart><Pie data={pieData} innerRadius={60} outerRadius={80} dataKey="value"><Cell fill="#4f46e5"/><Cell fill="#e2e8f0"/></Pie><Tooltip/></PieChart></ResponsiveContainer></div>
-              <div className="flex justify-center gap-4 text-sm font-bold text-slate-600"><span className="flex items-center gap-1"><span className="w-3 h-3 bg-indigo-600 rounded-full"></span>Sàn</span><span className="flex items-center gap-1"><span className="w-3 h-3 bg-slate-200 rounded-full"></span>Đối tác</span></div>
+            <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 flex flex-col justify-center">
+              <h3 className="font-bold text-slate-800 mb-2 text-center">Cơ cấu doanh thu</h3>
+              <div className="h-64"><ResponsiveContainer><PieChart><Pie data={pieData} innerRadius={60} outerRadius={80} dataKey="value" paddingAngle={5}><Cell fill="#4f46e5"/><Cell fill="#e2e8f0"/></Pie><Tooltip/></PieChart></ResponsiveContainer></div>
+              <div className="flex justify-center gap-6 text-sm font-bold text-slate-600"><span className="flex items-center gap-2"><span className="w-3 h-3 bg-indigo-600 rounded-full"></span>Sàn (20%)</span><span className="flex items-center gap-2"><span className="w-3 h-3 bg-slate-200 rounded-full"></span>GV (80%)</span></div>
             </div>
           </div>
 
+          {/* Danh sách khóa học */}
           <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden">
              <div className="p-8 border-b border-slate-100"><h3 className="font-bold text-xl text-slate-800">📦 Kho Khóa Học ({courses.length})</h3></div>
              <div className="overflow-x-auto">
@@ -134,65 +133,78 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
                 </table>
              </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* FINANCE TAB - ĐÃ SỬA LOGIC HIỂN THỊ DỰA TRÊN TYPE */}
+      {/* --- FINANCE TAB (ĐÃ FIX: HIỂN THỊ FULL GIAO DỊCH VỚI THANH CUỘN) --- */}
       {activeTab === 'finance' && (
-         <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center"><div><h3 className="text-xl font-black text-slate-800">Quản Lý Dòng Tiền</h3><p className="text-sm text-slate-500 font-medium mt-1">Chi tiết các giao dịch thu/chi trên hệ thống</p></div><button className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition-all"><Download size={18}/> Xuất Excel</button></div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-extrabold tracking-wider"><tr><th className="p-6 w-20">#ID</th><th className="p-6">Đối tác / Khách hàng</th><th className="p-6">Loại giao dịch</th><th className="p-6">Ngày giờ</th><th className="p-6 text-right">Số tiền</th><th className="p-6 text-center">Trạng thái</th></tr></thead>
-                <tbody className="divide-y divide-slate-100">
-                  {stats.transactions && stats.transactions.length > 0 ? (
-                    stats.transactions.map((t, i) => (
-                      <tr key={i} className="hover:bg-slate-50/80 transition-colors group">
-                        <td className="p-6 font-mono text-slate-400 text-sm">#{t.id}</td>
-                        <td className="p-6"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600">{t.user_name ? t.user_name.charAt(0) : 'U'}</div><span className="font-bold text-slate-700">{t.user_name || 'Khách vãng lai'}</span></div></td>
-                        
-                        {/* LOGIC MỚI: Check type từ API stats.php */}
-                        <td className="p-6">
-                            {t.type === 'expense' ? 
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><ArrowUpRight size={14}/> Chi phí (OUT)</span> : 
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><ArrowDownLeft size={14}/> Doanh thu (IN)</span>
-                            }
-                        </td>
-                        
-                        <td className="p-6 text-slate-500 font-medium text-sm">{t.created_at || 'Vừa xong'}</td>
-                        <td className={`p-6 text-right font-black text-base ${t.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {t.type === 'expense' ? '-' : '+'}{formatMoney(t.total_amount)}
-                        </td>
-                        <td className="p-6 text-center"><span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full"><CheckCircle2 size={12} className="text-green-500"/> Success</span></td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr><td colSpan="6" className="p-10 text-center text-slate-400 font-medium"><div className="flex flex-col items-center gap-2"><Ban size={32} className="opacity-50"/><span>Chưa có dữ liệu giao dịch nào.</span></div></td></tr>
-                  )}
-                </tbody>
-              </table>
+         <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm flex flex-col h-full">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div><h3 className="text-xl font-black text-slate-800">Quản Lý Dòng Tiền</h3><p className="text-sm text-slate-500 font-medium mt-1">Chi tiết các giao dịch thu/chi trên hệ thống</p></div>
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition-all"><Download size={18}/> Xuất Excel</button>
+            </div>
+            
+            {/* Vùng chứa bảng có thanh cuộn riêng */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="overflow-auto flex-1 custom-scrollbar">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-extrabold tracking-wider sticky top-0 z-10 shadow-sm">
+                    <tr><th className="p-6 w-24">#ID</th><th className="p-6">Đối tác / Khách hàng</th><th className="p-6">Loại giao dịch</th><th className="p-6">Ngày giờ</th><th className="p-6 text-right">Số tiền</th><th className="p-6 text-center">Trạng thái</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {stats.transactions && stats.transactions.length > 0 ? (
+                      stats.transactions.map((t, i) => (
+                        <tr key={i} className="hover:bg-slate-50/80 transition-colors group">
+                          <td className="p-6 font-mono text-slate-400 text-sm">#{t.id}</td>
+                          <td className="p-6"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600">{t.user_name ? t.user_name.charAt(0) : 'U'}</div><span className="font-bold text-slate-700">{t.user_name || 'Khách vãng lai'}</span></div></td>
+                          
+                          {/* Logic Type: Withdraw = Chi, Income = Thu */}
+                          <td className="p-6">
+                              {t.type === 'withdraw' ? 
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200"><ArrowUpRight size={14}/> Rút tiền (OUT)</span> : 
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"><ArrowDownLeft size={14}/> Doanh thu (IN)</span>
+                              }
+                          </td>
+                          
+                          <td className="p-6 text-slate-500 font-medium text-sm">{t.created_at}</td>
+                          <td className={`p-6 text-right font-black text-base ${t.type === 'withdraw' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                              {t.type === 'withdraw' ? '-' : '+'}{formatMoney(Math.abs(t.amount))}
+                          </td>
+                          <td className="p-6 text-center">
+                              <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${t.status === 'success' ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}`}>
+                                  <CheckCircle2 size={12}/> {t.status === 'success' ? 'Success' : 'Pending'}
+                              </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="6" className="p-20 text-center text-slate-400 font-medium"><div className="flex flex-col items-center gap-3"><Ban size={40} className="opacity-50"/><span>Chưa có dữ liệu giao dịch nào.</span></div></td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
          </div>
       )}
 
-      {/* USERS TAB */}
+      {/* --- USERS TAB (ĐÃ KẾT NỐI API THẬT) --- */}
       {activeTab === 'users' && (
-        <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
-           <div className="p-6 border-b border-slate-100 flex gap-4">
-              <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3 flex items-center gap-3">
+        <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm h-full flex flex-col">
+           <div className="p-6 border-b border-slate-100 flex gap-4 shrink-0">
+              <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3 flex items-center gap-3 border border-transparent focus-within:border-indigo-500 transition-all">
                  <Search className="text-slate-400"/>
                  <input 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Tìm kiếm theo tên hoặc email..." 
-                    className="bg-transparent outline-none w-full font-bold text-slate-600"
+                    className="bg-transparent outline-none w-full font-bold text-slate-600 placeholder:text-slate-400"
                  />
               </div>
            </div>
            
-           <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                 <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-extrabold tracking-wider">
+           <div className="flex-1 overflow-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse">
+                 <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-extrabold tracking-wider sticky top-0 z-10 shadow-sm">
                     <tr><th className="p-6">User</th><th className="p-6">Role</th><th className="p-6">Status</th><th className="p-6">Joined</th><th className="p-6 text-right">Action</th></tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -208,14 +220,14 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
                           </td>
                           <td className="p-6"><span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${user.role === 'admin' ? 'bg-slate-100 text-slate-700' : user.role === 'teacher' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>{user.role}</span></td>
                           <td className="p-6"><span className={`flex items-center gap-1.5 text-xs font-bold ${user.status === 'Active' ? 'text-emerald-600' : 'text-rose-600'}`}><div className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>{user.status || 'Active'}</span></td>
-                          <td className="p-6 text-sm text-slate-500 font-medium">{user.joined}</td>
+                          <td className="p-6 text-sm text-slate-500 font-medium">{user.created_at || 'N/A'}</td>
                           <td className="p-6 text-right flex justify-end gap-2">
-                             <button className="p-2 bg-slate-100 rounded-lg hover:text-indigo-600 transition-all" onClick={() => alert("Chức năng đang phát triển")}><Edit size={16}/></button>
+                             <button className="p-2 bg-slate-100 rounded-lg hover:text-indigo-600 transition-all" onClick={() => alert("Chức năng sửa user đang phát triển")}><Edit size={16}/></button>
                              <button onClick={() => handleDeleteUser(user.id, user.full_name)} className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={16}/></button>
                           </td>
                        </tr>
                     )) : (
-                        <tr><td colSpan="5" className="p-10 text-center text-slate-400 italic">Không tìm thấy người dùng nào.</td></tr>
+                        <tr><td colSpan="5" className="p-20 text-center text-slate-400 italic">Không tìm thấy người dùng nào.</td></tr>
                     )}
                  </tbody>
               </table>
@@ -223,15 +235,12 @@ const AdminView = ({ courses, stats, onDeleteCourse, onAddNewCourse, onEditCours
         </div>
       )}
 
-      {/* MARKETING TAB - GIỮ NGUYÊN (VÌ LÀ TĨNH) */}
-      {activeTab === 'marketing' && (
+      {/* MARKETING & SETTINGS TAB (GIỮ NGUYÊN) */}
+      {(activeTab === 'marketing' || activeTab === 'settings') && (
          <div className="grid grid-cols-2 gap-6">
             <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm"><h3 className="font-bold text-slate-800 mb-4">Chiến dịch đang chạy</h3><div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 mb-4"><div className="flex justify-between mb-2"><span className="font-bold text-indigo-700">Back to School</span><span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">Active</span></div><p className="text-sm text-indigo-600">Giảm 20% toàn bộ khóa học THPT</p></div><button className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800">+ Tạo chiến dịch mới</button></div>
-            <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm"><h3 className="font-bold text-slate-800 mb-4">Mã giảm giá (Coupons)</h3><div className="space-y-2">{['STUDY2025', 'WELCOME'].map(c => (<div key={c} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl"><span className="font-mono font-bold text-slate-700">{c}</span><span className="text-xs text-slate-400">100/500 lượt dùng</span></div>))}</div></div>
+            <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm"><h3 className="font-bold text-slate-800 mb-4">Cấu hình hệ thống</h3><div className="space-y-4"><div className="flex justify-between items-center p-4 border rounded-2xl"><div><h4 className="font-bold">Chế độ bảo trì</h4><p className="text-sm text-slate-500">Tạm dừng truy cập</p></div><div className="w-12 h-6 bg-slate-200 rounded-full relative cursor-pointer"><div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow-sm"></div></div></div></div></div>
          </div>
-      )}
-      {activeTab === 'settings' && (
-         <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm"><h3 className="font-bold text-slate-800 mb-6">Cấu hình hệ thống</h3><div className="space-y-4"><div className="flex justify-between items-center p-4 border rounded-2xl"><div><h4 className="font-bold">Chế độ bảo trì</h4><p className="text-sm text-slate-500">Tạm dừng truy cập người dùng</p></div><div className="w-12 h-6 bg-slate-200 rounded-full relative cursor-pointer"><div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow-sm"></div></div></div><div className="flex justify-between items-center p-4 border rounded-2xl"><div><h4 className="font-bold">Cho phép đăng ký mới</h4><p className="text-sm text-slate-500">Mở cổng đăng ký tài khoản</p></div><div className="w-12 h-6 bg-indigo-600 rounded-full relative cursor-pointer"><div className="w-5 h-5 bg-white rounded-full absolute top-0.5 right-0.5 shadow-sm"></div></div></div></div></div>
       )}
     </div>
   );
